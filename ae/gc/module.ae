@@ -320,6 +320,20 @@ gm_update_pos_cache(ctx: ptr) {
     }
 }
 
+// run the user C finalizer for an unmarked block, if it is a user-class object
+gm_finalize_(ctx: ptr, finalizer_table: long, bp: long) {
+    if hdr_mtag(bp) == consts.JS_MTAG_OBJECT {
+        int cid = hdr_class_id(bp)
+        if cid >= consts.JS_CLASS_USER {
+            long fn = mem.get_long(mem.long_to_ptr(finalizer_table + (cid - consts.JS_CLASS_USER) * 8), 0)
+            if fn != 0 {
+                opaque = mem.get_ptr(mem.long_to_ptr(bp + USER_OPAQUE), 0)
+                vm_call_finalizer(fn, ctx, opaque)
+            }
+        }
+    }
+}
+
 gm_sweep(ctx: ptr) {
     long bp = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_HEAP_BASE))
     long hf = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_HEAP_FREE))
@@ -330,21 +344,18 @@ gm_sweep(ctx: ptr) {
             hdr_set_mark(bp, 0)
         } else {
             // unmarked: run user finalizer if applicable, then free + coalesce
-            if hdr_mtag(bp) == consts.JS_MTAG_OBJECT {
-                int cid = hdr_class_id(bp)
-                if cid >= consts.JS_CLASS_USER {
-                    long fn = mem.get_long(mem.long_to_ptr(finalizer_table + (cid - consts.JS_CLASS_USER) * 8), 0)
-                    if fn != 0 {
-                        opaque = mem.get_ptr(mem.long_to_ptr(bp + USER_OPAQUE), 0)
-                        vm_call_finalizer(fn, ctx, opaque)
-                    }
-                }
-            }
-            // merge consecutive unmarked free blocks
+            gm_finalize_(ctx, finalizer_table, bp)
+            // merge consecutive unmarked blocks. Each merged block is dead too
+            // and must be finalized: upstream mquickjs skipped this, so only
+            // the first of each run of dead user objects had its finalizer
+            // run (example.c leaked ~99% of its Rectangle data).
             long bp1 = bp + size
             int running = 1
             while running != 0 {
-                if bp1 < hf && hdr_gc_mark(bp1) == 0 { bp1 = bp1 + get_mblock_size(mem.long_to_ptr(bp1)) }
+                if bp1 < hf && hdr_gc_mark(bp1) == 0 {
+                    gm_finalize_(ctx, finalizer_table, bp1)
+                    bp1 = bp1 + get_mblock_size(mem.long_to_ptr(bp1))
+                }
                 else { running = 0 }
             }
             size = bp1 - bp
