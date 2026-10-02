@@ -17,6 +17,8 @@ aeb(cap) {
             run(".build.ae", "tests/test_language.js")
             run(".build.ae", "tests/test_loop.js")
             run(".build.ae", "tests/test_builtin.js")
+            // compacting-GC relocation under load (VM SAVE/RESTORE)
+            run(".build.ae", "tests/test_gc_relocation.js")
             // bytecode write then read-back
             run(".build.ae", "-o test_builtin.bin tests/test_builtin.js")
             run(".build.ae", "-b test_builtin.bin")

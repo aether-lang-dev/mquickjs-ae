@@ -547,12 +547,16 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
 
         // ---- arithmetic slow-path blocks ----
         if block == 200 {   // add_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_add_slow(ctx)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_add_slow(ctx)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 201 {   // binary_arith_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_binary_arith_slow(ctx, opcode)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_binary_arith_slow(ctx, opcode)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
@@ -565,47 +569,65 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 if mem.bits_of_float(dr) != 0 { set_slot(sp, 0, ctx_minus_zero(ctx)) } else { set_slot(sp, 0, new_short_int_(0)) }
                 block = 0  continue
             }
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_alloc_float64(ctx, dr)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_alloc_float64(ctx, dr)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
         if block == 220 {   // unary_arith_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_unary_arith_slow(ctx, opcode)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_unary_arith_slow(ctx, opcode)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
         if block == 230 {   // slow_post_inc_dec
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_post_inc_slow(ctx, opcode)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_post_inc_slow(ctx, opcode)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             sp = sp - 8  set_slot(sp, 0, val)  block = 0  continue
         }
         if block == 240 {   // binary_logic_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_binary_logic_slow(ctx, opcode)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_binary_logic_slow(ctx, opcode)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 250 {   // relational_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_relational_slow(ctx, opcode)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_relational_slow(ctx, opcode)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 251 {   // eq_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_eq_slow(ctx, 0)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_eq_slow(ctx, 0)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 252 {   // neq_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_eq_slow(ctx, 1)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_eq_slow(ctx, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 253 {   // strict_eq_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_strict_eq_slow(ctx, 0)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_strict_eq_slow(ctx, 0)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if block == 254 {   // strict_neq_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_strict_eq_slow(ctx, 1)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_strict_eq_slow(ctx, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
@@ -631,8 +653,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             pc = pc + 2  set_slot(sp, 0, val)  block = 0  continue
         }
         if block == 301 {   // get_field_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = getpkg.JS_GetPropertyInternal(ctx, gf_obj, gf_prop, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exc_or_tail(val) != 0 { sp = ctx_sp_(ctx)  block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  set_slot(sp, 0, val)  block = 0  continue
         }
@@ -648,8 +672,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 } else if obj_mtag_(p) == consts.MTAG_STRING {
                     if str_is_ascii_(p) != 0 { val = new_short_int_(str_len_(p)) }
                     else {
-                        ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                        set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                         val = new_short_int_(strpos.js_string_utf8_to_utf16_pos(ctx, gf_obj, str_len_(p) * 2))
+                        // RESTORE: a GC during the call may have moved the bytecode
+                        b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                     }
                 } else { block = 311  continue }
                 set_slot(sp, 0, val)  block = 0  continue
@@ -662,8 +688,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             block = 311  continue
         }
         if block == 311 {   // get_length_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = getpkg.JS_GetPropertyInternal(ctx, gf_obj, js_get_atom(ctx, consts.JS_ATOM_length), 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exc_or_tail(val) != 0 { sp = ctx_sp_(ctx)  block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
@@ -680,11 +708,15 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             block = 321  continue
         }
         if block == 321 {   // get_array_el_slow
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             gf_prop = JS_ToPropertyKey(ctx, gf_prop)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(gf_prop) != 0 { val = gf_prop  block = consts.BLK_EXCEPTION  continue }
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = getpkg.JS_GetPropertyInternal(ctx, slot(sp, 0), gf_prop, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exc_or_tail(val) != 0 { sp = ctx_sp_(ctx)  block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
@@ -746,22 +778,28 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         if opcode == opcodes.OP_get_loc8 { int li = pc_u8(pc)  pc = pc + 1  sp = sp - 8  set_slot(sp, 0, slot(fp, FO_VAR0 - li))  block = 0  continue }
         if opcode == opcodes.OP_put_loc8 { int li = pc_u8(pc)  pc = pc + 1  set_slot(fp, FO_VAR0 - li, slot(sp, 0))  sp = sp + 8  block = 0  continue }
         if opcode == opcodes.OP_object {
-            int n = pc_u16(pc)  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            int n = pc_u16(pc)  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_NewObjectPrealloc(ctx, n)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             sp = sp - 8  set_slot(sp, 0, val)  pc = pc + 2  block = 0  continue
         }
         if opcode == opcodes.OP_regexp {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_NewObjectClass(ctx, CLASS_REGEXP, 24)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             long rp = v_to_ptr(val)
             obj_regexp_set(rp, slot(sp, 1), slot(sp, 0))
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_array_from {
-            int argc = pc_u16(pc)  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            int argc = pc_u16(pc)  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_NewArray(ctx, argc)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  long ap = v_to_ptr(val)  long tab = obj_array_tab_(ap)
             int i = 0  while i < argc { va_set_(tab, i, slot(sp, argc - 1 - i))  i = i + 1 }
@@ -769,8 +807,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         }
         if opcode == opcodes.OP_arguments {
             int argc = v_get_int(slot(fp, FO_CALL_FLAGS)) & CF_ARGC_MASK
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_NewArray(ctx, argc)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             long ap = v_to_ptr(val)  long tab = obj_array_tab_(ap)
             int i = 0  while i < argc { va_set_(tab, i, slot(fp, FO_ARG0 + i))  i = i + 1 }
@@ -783,8 +823,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             block = 0  continue
         }
         if opcode == opcodes.OP_fclosure {
-            int idx = pc_u16(pc)  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            int idx = pc_u16(pc)  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = js_closure(ctx, va_get_(fb_cpool(b), idx), mem.long_to_ptr(fp))
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  sp = sp - 8  set_slot(sp, 0, val)  block = 0  continue
         }
@@ -820,8 +862,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         }
         if opcode == opcodes.OP_throw {
             val = slot(sp, 0)  sp = sp + 8
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_Throw(ctx, val)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             block = consts.BLK_EXCEPTION  continue
         }
         if opcode == opcodes.OP_gosub {
@@ -831,14 +875,18 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         }
         if opcode == opcodes.OP_ret {
             if v_is_int(slot(sp, 0)) == 0 {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                 val = JS_ThrowError(ctx, consts.JS_CLASS_INTERNAL_ERROR, "invalid ret value")
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
             }
             int pos = v_get_int(slot(sp, 0))
             if pos >= bc_size(fb_byte_code(b)) {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                 val = JS_ThrowError(ctx, consts.JS_CLASS_INTERNAL_ERROR, "invalid ret value")
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
             }
             sp = sp + 8  pc = bc_buf_(fb_byte_code(b)) + pos  block = 0  continue
@@ -851,8 +899,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             long pv = v_to_ptr(obj_closure_varref(p, idx))
             if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long(mem.long_to_ptr(vr_pvalue(pv)), 0) }
             if val == jstag.TAG_UNINITIALIZED {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                 val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable is not defined")
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
             }
             pc = pc + 2  sp = sp - 8  set_slot(sp, 0, val)  block = 0  continue
@@ -871,8 +921,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             long pval = 0
             if vr_is_detached(pv) != 0 { pval = pv + 8 } else { pval = vr_pvalue(pv) }
             if mem.get_long(mem.long_to_ptr(pval), 0) == jstag.TAG_UNINITIALIZED {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                 val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable is not defined")
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
             }
             mem.set_long(mem.long_to_ptr(pval), 0, slot(sp, 0))  sp = sp + 8  pc = pc + 2  block = 0  continue
@@ -957,8 +1009,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             long op1 = slot(sp, 1)  long op2 = slot(sp, 0)
             if v_both_int(op1, op2) != 0 {
                 int v1 = v_get_int(op1)  int v2 = v_get_int(op2)
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                 val = JS_NewFloat64(ctx, i2d(v1) / i2d(v2))
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
                 set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
             } else { block = 201  continue }
@@ -1035,8 +1089,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         if opcode == opcodes.OP_not {
             long op1 = slot(sp, 0)
             if v_is_int(op1) != 0 { long m = 0 - 2  set_slot(sp, 0, (0 - 1 - op1) & m)  block = 0  continue }
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = ops.js_not_slow(ctx)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
@@ -1092,37 +1148,51 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
         if opcode == opcodes.OP_strict_eq { long o1 = slot(sp, 1)  long o2 = slot(sp, 0)  if v_both_int(o1, o2) != 0 { set_slot(sp, 1, new_bool_(b2i(v_get_int(o1) == v_get_int(o2))))  sp = sp + 8  block = 0  continue }  block = 253  continue }
         if opcode == opcodes.OP_strict_neq { long o1 = slot(sp, 1)  long o2 = slot(sp, 0)  if v_both_int(o1, o2) != 0 { set_slot(sp, 1, new_bool_(b2i(v_get_int(o1) != v_get_int(o2))))  sp = sp + 8  block = 0  continue }  block = 254  continue }
         if opcode == opcodes.OP_in {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_in(ctx)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_in(ctx)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_instanceof {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_instanceof(ctx)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_instanceof(ctx)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_typeof {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_typeof(ctx, slot(sp, 0))
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = ops.js_operator_typeof(ctx, slot(sp, 0))
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
         if opcode == opcodes.OP_delete {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = JS_DeleteProperty(ctx, slot(sp, 1), slot(sp, 0))
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = JS_DeleteProperty(ctx, slot(sp, 1), slot(sp, 0))
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 1, val)  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_for_in_start {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_start(ctx, 1)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_start(ctx, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
         if opcode == opcodes.OP_for_of_start {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_start(ctx, 0)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_start(ctx, 0)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             set_slot(sp, 0, val)  block = 0  continue
         }
         if opcode == opcodes.OP_for_of_next {
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_next(ctx)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = js_for_of_next(ctx)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             sp = sp - 16  block = 0  continue
         }
@@ -1146,8 +1216,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 }
             }
             long pv2 = slot(sp, 0)  sp = sp + 8
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = setprop.JS_SetPropertyInternal(ctx, slot(sp, 0), prop, pv2, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exc_or_tail(val) != 0 { sp = ctx_sp_(ctx)  block = consts.BLK_EXCEPTION  continue }
             sp = sp + 8  pc = pc + 2  block = 0  continue
         }
@@ -1164,30 +1236,40 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     } else { va_set_(tab, idx, slot(sp, 0))  sp = sp + 24  block = 0  continue }
                 } }
             } }
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             set_slot(sp, 1, JS_ToPropertyKey(ctx, slot(sp, 1)))
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(slot(sp, 1)) != 0 { val = slot(sp, 1)  block = consts.BLK_EXCEPTION  continue }
             long pv3 = slot(sp, 0)  sp = sp + 8  long pk = slot(sp, 0)  sp = sp + 8
-            ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = setprop.JS_SetPropertyInternal(ctx, slot(sp, 0), pk, pv3, 1)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exc_or_tail(val) != 0 { sp = ctx_sp_(ctx)  block = consts.BLK_EXCEPTION  continue }
             sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_define_field {
-            long prop = va_get_(fb_cpool(b), pc_u16(pc))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            long prop = va_get_(fb_cpool(b), pc_u16(pc))  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_DefinePropertyValue(ctx, slot(sp, 1), prop, slot(sp, 0))
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_define_getter {
-            long prop = va_get_(fb_cpool(b), pc_u16(pc))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            long prop = va_get_(fb_cpool(b), pc_u16(pc))  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_DefinePropertyGetSet(ctx, slot(sp, 1), prop, slot(sp, 0), jstag.JS_UNDEFINED, consts.JS_DEF_PROP_HAS_GET)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  sp = sp + 8  block = 0  continue
         }
         if opcode == opcodes.OP_define_setter {
-            long prop = va_get_(fb_cpool(b), pc_u16(pc))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+            long prop = va_get_(fb_cpool(b), pc_u16(pc))  set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
             val = JS_DefinePropertyGetSet(ctx, slot(sp, 1), prop, jstag.JS_UNDEFINED, slot(sp, 0), consts.JS_DEF_PROP_HAS_SET)
+            // RESTORE: a GC during the call may have moved the bytecode
+            b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
             if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             pc = pc + 2  sp = sp + 8  block = 0  continue
         }
@@ -1196,10 +1278,14 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             int isnull = 0  if slot(sp, 0) == jstag.JS_NULL { isnull = 1 }
             if isobj != 0 { isnull = isnull }
             if isobj != 0 {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = setprop.js_set_prototype_internal(ctx, slot(sp, 1), slot(sp, 0))
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = setprop.js_set_prototype_internal(ctx, slot(sp, 1), slot(sp, 0))
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             } else if isnull != 0 {
-                ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = setprop.js_set_prototype_internal(ctx, slot(sp, 1), slot(sp, 0))
+                set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)  val = setprop.js_set_prototype_internal(ctx, slot(sp, 1), slot(sp, 0))
+                // RESTORE: a GC during the call may have moved the bytecode
+                b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 if v_is_exception(val) != 0 { block = consts.BLK_EXCEPTION  continue }
             }
             sp = sp + 8  block = 0  continue
@@ -1207,8 +1293,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
 
         // any opcode not matched above (should be none): raise with the
         // opcode number so it can be identified.
-        ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
+        set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
         val = JS_ThrowError(ctx, consts.JS_CLASS_INTERNAL_ERROR, "ae-vm: unported opcode %d", opcode)
+        // RESTORE: a GC during the call may have moved the bytecode
+        b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
         block = consts.BLK_EXCEPTION  continue
     }
     free(scratch)
