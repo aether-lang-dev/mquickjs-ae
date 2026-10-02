@@ -1,0 +1,112 @@
+// Unit test for ae/is_regexp_allowed — whether a '/' after the previous
+// token starts a regexp literal. Expected behaviour is the C switch in
+// mquickjs.c (ebae6ce): FALSE for TOK_NUMBER, TOK_STRING, TOK_REGEXP,
+// TOK_DEC, TOK_INC, TOK_NULL, TOK_FALSE, TOK_TRUE, TOK_THIS, TOK_IF,
+// TOK_WHILE, TOK_FOR, TOK_DO, TOK_CASE, TOK_CATCH, ')', ']', TOK_IDENT;
+// TRUE for everything else.
+//
+// Token numbers are written out from the C enum (TOK_NUMBER = 128, then
+// sequential; keywords are TOK_FIRST_KEYWORD (161) + JS_ATOM_<kw> from the
+// generated mquickjs_atom.h), not taken from ae.consts, so a drift in
+// either side shows up here.
+
+import std.spec
+import ae.is_regexp_allowed
+
+const T_NUMBER = 128
+const T_STRING = 129
+const T_IDENT = 130
+const T_REGEXP = 131
+const T_MUL_ASSIGN = 132
+const T_DIV_ASSIGN = 133
+const T_POW_ASSIGN = 143
+const T_DEC = 144
+const T_INC = 145
+const T_SHL = 146
+const T_LT = 149
+const T_STRICT_EQ = 154
+const T_POW = 159
+const T_EOF = 160
+const T_NULL = 161        // + JS_ATOM_null (0)
+const T_FALSE = 163       // + JS_ATOM_false (2)
+const T_TRUE = 165        // + JS_ATOM_true (4)
+const T_IF = 167          // + JS_ATOM_if (6)
+const T_ELSE = 169        // + JS_ATOM_else (8)
+const T_RETURN = 171      // + JS_ATOM_return (10)
+const T_THIS = 175        // + JS_ATOM_this (14)
+const T_TYPEOF = 181      // + JS_ATOM_typeof (20)
+const T_IN = 185          // + JS_ATOM_in (24)
+const T_DO = 190          // + JS_ATOM_do (29)
+const T_WHILE = 192       // + JS_ATOM_while (31)
+const T_FOR = 194         // + JS_ATOM_for (33)
+const T_CASE = 203        // + JS_ATOM_case (42)
+const T_CATCH = 211       // + JS_ATOM_catch (50)
+
+allowed(tok: int) -> int { return is_regexp_allowed.is_regexp_allowed(tok) }
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "is_regexp_allowed") {
+        spec.it("after a value token '/' is division") callback {
+            spec.assert_eq(allowed(T_NUMBER), 0, "number")
+            spec.assert_eq(allowed(T_STRING), 0, "string")
+            spec.assert_eq(allowed(T_REGEXP), 0, "regexp")
+            spec.assert_eq(allowed(T_IDENT), 0, "ident")
+            spec.assert_eq(allowed(41), 0, "')'")
+            spec.assert_eq(allowed(93), 0, "']'")
+        }
+        spec.it("after value keywords '/' is division") callback {
+            spec.assert_eq(allowed(T_NULL), 0, "null")
+            spec.assert_eq(allowed(T_FALSE), 0, "false")
+            spec.assert_eq(allowed(T_TRUE), 0, "true")
+            spec.assert_eq(allowed(T_THIS), 0, "this")
+        }
+        spec.it("after the C-listed statement keywords it is division") callback {
+            spec.assert_eq(allowed(T_IF), 0, "if")
+            spec.assert_eq(allowed(T_WHILE), 0, "while")
+            spec.assert_eq(allowed(T_FOR), 0, "for")
+            spec.assert_eq(allowed(T_DO), 0, "do")
+            spec.assert_eq(allowed(T_CASE), 0, "case")
+            spec.assert_eq(allowed(T_CATCH), 0, "catch")
+        }
+        spec.it("after punctuators and operators a regexp may start") callback {
+            spec.assert_eq(allowed(40), 1, "'('")
+            spec.assert_eq(allowed(91), 1, "'['")
+            spec.assert_eq(allowed(123), 1, "'{'")
+            spec.assert_eq(allowed(125), 1, "'}'")
+            spec.assert_eq(allowed(44), 1, "','")
+            spec.assert_eq(allowed(59), 1, "';'")
+            spec.assert_eq(allowed(61), 1, "'='")
+            spec.assert_eq(allowed(33), 1, "'!'")
+            spec.assert_eq(allowed(58), 1, "':'")
+            spec.assert_eq(allowed(63), 1, "'?'")
+            spec.assert_eq(allowed(T_POW_ASSIGN), 1, "**=")
+            spec.assert_eq(allowed(T_SHL), 1, "<<")
+            spec.assert_eq(allowed(T_LT), 1, "<")
+            spec.assert_eq(allowed(T_STRICT_EQ), 1, "===")
+            spec.assert_eq(allowed(T_POW), 1, "**")
+            spec.assert_eq(allowed(T_EOF), 1, "EOF")
+            spec.assert_eq(allowed(0), 1, "tok 0")
+        }
+        spec.it("after other keywords a regexp may start") callback {
+            spec.assert_eq(allowed(T_ELSE), 1, "else")
+            spec.assert_eq(allowed(T_RETURN), 1, "return")
+            spec.assert_eq(allowed(T_TYPEOF), 1, "typeof")
+            spec.assert_eq(allowed(T_IN), 1, "in")
+        }
+        // Regression: ae/is_regexp_allowed.ae once hard-coded TOK_DEC = 132 /
+        // TOK_INC = 133 (really TOK_MUL_ASSIGN / TOK_DIV_ASSIGN), so `a++ / 2`
+        // lexed '/' as a regexp and `x *= /re/` as division.
+        spec.it("after ++ / -- '/' is division (C: FALSE)") callback {
+            spec.assert_eq(allowed(T_DEC), 0, "--")
+            spec.assert_eq(allowed(T_INC), 0, "++")
+        }
+        spec.it("after *= and /= a regexp may start (C: TRUE)") callback {
+            spec.assert_eq(allowed(T_MUL_ASSIGN), 1, "*=")
+            spec.assert_eq(allowed(T_DIV_ASSIGN), 1, "/=")
+        }
+    }
+
+    return spec.run_summary(fw)
+}

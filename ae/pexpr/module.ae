@@ -462,8 +462,6 @@ js_parse_expr_binary(s: ptr, st: int, parse_flags: int) -> int {
 
 
 
-const TOK_DEC = 144
-const TOK_INC = 145
 
 
 
@@ -492,8 +490,8 @@ js_parse_unary(s: ptr, st: int, parse_flags: int) -> int {
             next_token(s)
             return enc_(1, consts.PARSE_FUNC_unary, 0)
         }
-        if t == TOK_DEC { return init_incdec(s, t, parse_flags) }
-        if t == TOK_INC { return init_incdec(s, t, parse_flags) }
+        if t == consts.TOK_DEC { return init_incdec(s, t, parse_flags) }
+        if t == consts.TOK_INC { return init_incdec(s, t, parse_flags) }
         if t == consts.TOK_TYPEOF {
             next_token(s)
             return enc_(3, consts.PARSE_FUNC_unary, 0)
@@ -535,7 +533,7 @@ js_parse_unary(s: ptr, st: int, parse_flags: int) -> int {
         int var_idx = mem.get_int(lv, 4)
         int source_pos = mem.get_uint32(lv, 8)
         free(lv)
-        emit.emit_op_pos(s, opcodes.OP_dec + op - TOK_DEC, op_source_pos)
+        emit.emit_op_pos(s, opcodes.OP_dec + op - consts.TOK_DEC, op_source_pos)
         int special = consts.PUT_LVALUE_KEEP_TOP
         if may_drop_result(s, parse_flags) != 0 {
             special = consts.PUT_LVALUE_NOKEEP_TOP
@@ -1110,10 +1108,10 @@ postfix_loop(s: ptr, parse_flags: int, is_new: int) -> int {
             free(lv)
             if may_drop_result(s, parse_flags) != 0 {
                 set_dropped(s, 1)
-                emit.emit_op_pos(s, opcodes.OP_dec + op - TOK_DEC, op_source_pos)
+                emit.emit_op_pos(s, opcodes.OP_dec + op - consts.TOK_DEC, op_source_pos)
                 put.put_lvalue(s, opcode, var_idx, source_pos, consts.PUT_LVALUE_NOKEEP_TOP)
             } else {
-                emit.emit_op_pos(s, opcodes.OP_post_dec + op - TOK_DEC, op_source_pos)
+                emit.emit_op_pos(s, opcodes.OP_post_dec + op - consts.TOK_DEC, op_source_pos)
                 put.put_lvalue(s, opcode, var_idx, source_pos, consts.PUT_LVALUE_KEEP_SECOND)
             }
         } else {
@@ -1126,8 +1124,8 @@ postfix_loop(s: ptr, parse_flags: int, is_new: int) -> int {
 // postfix ++/-- match: not preceded by a line feed.
 postfix_incdec_match(s: ptr, t: int) -> int {
     if got_lf_(s) != 0 { return 0 }
-    if t == TOK_DEC { return 1 }
-    if t == TOK_INC { return 1 }
+    if t == consts.TOK_DEC { return 1 }
+    if t == consts.TOK_INC { return 1 }
     return 0
 }
 

@@ -8,16 +8,13 @@
 import ae.consts
 exports (is_regexp_allowed)
 
-const TOK_DEC = 132
-const TOK_INC = 133
-
 // BOOL is_regexp_allowed(int tok)
 is_regexp_allowed(tok: int) -> int {
     if tok == consts.TOK_NUMBER { return 0 }
     if tok == consts.TOK_STRING { return 0 }
     if tok == consts.TOK_REGEXP { return 0 }
-    if tok == TOK_DEC { return 0 }
-    if tok == TOK_INC { return 0 }
+    if tok == consts.TOK_DEC { return 0 }
+    if tok == consts.TOK_INC { return 0 }
     if tok == consts.TOK_NULL { return 0 }
     if tok == consts.TOK_FALSE { return 0 }
     if tok == consts.TOK_TRUE { return 0 }

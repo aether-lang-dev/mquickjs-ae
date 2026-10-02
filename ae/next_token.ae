@@ -26,8 +26,6 @@ extern js_free(ctx: ptr, p: ptr)
 
 exports (next_token)
 
-const TOK_INC = 145
-const TOK_DEC = 144
 
 
 f_isnan_(d: float) -> int {
@@ -106,10 +104,10 @@ handle_operator(s: ptr, pos: long, c: int, b1: int) -> long {
         if b1 == 61 { set_tok_val(s, consts.TOK_MOD_ASSIGN)  return pos + 2 }
     } else if c == 43 {    // '+'
         if b1 == 61 { set_tok_val(s, consts.TOK_PLUS_ASSIGN)  return pos + 2 }
-        if b1 == 43 { set_tok_val(s, TOK_INC)  return pos + 2 }
+        if b1 == 43 { set_tok_val(s, consts.TOK_INC)  return pos + 2 }
     } else if c == 45 {    // '-'
         if b1 == 61 { set_tok_val(s, consts.TOK_MINUS_ASSIGN)  return pos + 2 }
-        if b1 == 45 { set_tok_val(s, TOK_DEC)  return pos + 2 }
+        if b1 == 45 { set_tok_val(s, consts.TOK_DEC)  return pos + 2 }
     } else if c == 60 {    // '<'
         if b1 == 61 { set_tok_val(s, consts.TOK_LTE)  return pos + 2 }
         if b1 == 60 {
