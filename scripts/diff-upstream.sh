@@ -84,13 +84,13 @@ git -C "$ROOT" show "$UPSTREAM_REF:cutils.c" > "$C/cutils.c"
 git -C "$ROOT" show "$UPSTREAM_REF:libm.c" > "$C/libm_upstream.c"
 # u32toa & co moved from dtoa.c into Aether (ae/dtoa.ae): link the real port code
 aeb_env
-"$AETHER/build/aetherc" --emit=lib --lib "$ROOT" "$ROOT/ae/dtoa.ae" "$C/dtoa_ae.c" >/dev/null 2>&1 \
+"$AETHER_TREE/build/aetherc" --emit=lib --lib "$ROOT" "$ROOT/ae/dtoa.ae" "$C/dtoa_ae.c" >/dev/null 2>&1 \
     || die "aetherc failed on ae/dtoa.ae"
-INC=$(find "$AETHER/runtime" "$AETHER/std" -name '*.h' -printf '-I%h\n' | sort -u | tr '\n' ' ')
+INC=$(find "$AETHER_TREE/runtime" "$AETHER_TREE/std" -name '*.h' -printf '-I%h\n' | sort -u | tr '\n' ' ')
 CF="-O2 -D_GNU_SOURCE -fno-math-errno -fno-trapping-math -I$C -w"
 (cd "$C" &&
     gcc $CF $INC -o dtoa_test tests/dtoa_test.c tests/gay-fixed.c tests/gay-precision.c \
-        tests/gay-shortest.c "$ROOT/dtoa.c" cutils.c dtoa_ae.c "$AETHER/build/libaether.a" \
+        tests/gay-shortest.c "$ROOT/dtoa.c" cutils.c dtoa_ae.c "$AETHER_TREE/build/libaether.a" \
         -lm -lpthread -ldl &&
     gcc $CF -o libm_test tests/libm_test.c "$ROOT/libm.c" -lm &&
     gcc $CF -o libm_test_ref tests/libm_test.c libm_upstream.c -lm &&

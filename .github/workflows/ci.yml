@@ -56,7 +56,6 @@ jobs:
 
       - name: Environment for the build
         run: |
-          echo "AETHER=$HOME/aether" >> "$GITHUB_ENV"
           echo "AETHER_HOME=$HOME/aether" >> "$GITHUB_ENV"
           echo "MQJS_AETHER_HOME=$HOME/aether" >> "$GITHUB_ENV"
           echo "$HOME/aether/build" >> "$GITHUB_PATH"
@@ -65,7 +64,9 @@ jobs:
         run: aeb .tests.ae
 
       - name: Unit tests (tests/ae, std.spec)
-        run: ./run-ae-tests.sh
+        # AETHER here is the tree; run-ae-tests.sh only. aeb reads $AETHER as
+        # the ae binary, so it must not be exported job-wide.
+        run: AETHER=$HOME/aether ./run-ae-tests.sh
 
       - name: Differential vs upstream C + Bellard's dtoa/libm tests
         run: scripts/diff-upstream.sh

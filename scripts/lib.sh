@@ -13,7 +13,9 @@
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 UPSTREAM_REF=${UPSTREAM_REF:-7ea5399}
-AETHER=${AETHER:-/home/paul/scm/aether}
+# The Aether source tree the engine builds against. Not called AETHER: aeb
+# reads $AETHER as the path to the `ae` binary.
+AETHER_TREE=${MQJS_AETHER_HOME:-${AETHER_TREE:-/home/paul/scm/aether}}
 
 EXTRAS_URL=https://bellard.org/mquickjs/mquickjs-extras.tar.xz
 EXTRAS_SHA256=9af5cc3794831ad7c65d07bfec9babbde24b952c6c1c1702bc766545bccbb131
@@ -23,9 +25,10 @@ die() { echo "$(basename "$0"): $*" >&2; exit 1; }
 # aeb's orchestrator needs Aether >= 0.758 on PATH; the engine itself builds
 # against the dev tree named by MQJS_AETHER_HOME (see AGENTS.md).
 aeb_env() {
-    export AETHER_HOME="$AETHER"
-    export MQJS_AETHER_HOME="${MQJS_AETHER_HOME:-$AETHER}"
-    export PATH="$AETHER/build:$PATH"
+    unset AETHER                       # aeb would take it as the ae binary
+    export AETHER_HOME="$AETHER_TREE"
+    export MQJS_AETHER_HOME="$AETHER_TREE"
+    export PATH="$AETHER_TREE/build:$PATH"
 }
 
 build_port() {
