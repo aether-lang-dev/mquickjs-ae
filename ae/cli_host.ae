@@ -362,6 +362,10 @@ compile_file(filename: ptr, outfilename: ptr, mem_size: long, dump_memory: int, 
     // A throwaway context: the stdlib content does not affect generated
     // bytecode, but its atoms must exist for parsing. Discarded after.
     mem_buf = malloc(mem_size)
+    // Zero the heap: the serialized bytecode copies object padding verbatim,
+    // so an unzeroed heap could make -o output differ run to run (valgrind:
+    // "write(buf) points to uninitialised bytes").
+    mem.set(mem_buf, 0, mem_size)
     ctx = mqjs_compile_new_ctx(mem_buf, mem_size)
 
     eval_str = load_file_(filename, null)
@@ -479,13 +483,16 @@ js_clearTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 // (the parser relies on the terminator); *plen = length. On error, print
 // the error and exit(1), like the C original's perror + exit.
 load_file_(filename: ptr, plen: ptr) -> ptr {
-    data, n, err = fs.read_binary(string.from_cstr(filename))
+    path = string.from_cstr(filename)
+    data, n, err = fs.read_binary(path)
+    string.free(path)
     if string.length(err) > 0 {
         io.stderr_write("${err}\n")
         os.exit(1)
     }
     buf = malloc(n + 1)
     if n > 0 { mem.copy(buf, string.bytes(data) as ptr, n) }
+    string.free(data)
     mem.set_byte(buf, n, 0)
     if plen != null { mem.set_int(plen, 0, n) }
     return buf
@@ -504,6 +511,7 @@ write_bytecode_(outfilename: ptr, hdr: ptr, hdr_len: int, data_buf: ptr, data_le
         io.stderr_write("${path}: ${err}\n")
         os.exit(1)
     }
+    string.free(path)
 }
 
 // run_timers: fire expired setTimeout callbacks until none remain,

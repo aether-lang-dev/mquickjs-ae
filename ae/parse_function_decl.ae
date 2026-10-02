@@ -23,8 +23,6 @@ extern js_parse_error_mem(s: ptr)
 extern js_parse_error_func_name(s: ptr)
 extern js_parse_expect1(s: ptr, ch: int)
 extern cpool_add(s: ptr, val: long) -> int
-extern malloc(n: long) -> ptr
-extern free(p: ptr)
 
 exports (js_parse_function_decl)
 
@@ -59,19 +57,22 @@ js_parse_function_decl(s: ptr, func_type: int, func_name: long) {
         if (s as *JSParseState).tok_val == consts.TOK_IDENT {
             func_name = (s as *JSParseState).tok_value
             // GC-root func_name across next_token
-            r = malloc(16)
+            long[2] r_slot               // JSGCRef on the stack, as in C
+            r = r_slot
             mem.set_long(r, 0, func_name)
             mem.set_ptr(r, 8, (ctx as *JSContext).top_gc_ref)
             (ctx as *JSContext).top_gc_ref = r
             next_token(s)
             func_name = mem.get_long(r, 0)
             (ctx as *JSContext).top_gc_ref = mem.get_ptr(r, 8)
-            free(r)
         }
     }
 
     // two chained GC roots: func_name and bfunc, live across the parse
-    refs = malloc(32)
+    // On the stack (as upstream's C locals) so a parse error, which unwinds
+    // via panic, cannot leak it; js_parse's error path restores top_gc_ref.
+    long[4] refs_slot
+    refs = refs_slot
     mem.set_long(refs, 0, func_name)                                       // func_name_ref.val
     mem.set_ptr(refs, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = refs
@@ -113,10 +114,10 @@ js_parse_function_decl(s: ptr, func_type: int, func_name: long) {
         emit.emit_op(s, opcodes.OP_fclosure)
         emit.emit_u16(s, idx)
     } else {
-        kindp = malloc(4)
+        long[1] kind_slot
+        kindp = kind_slot
         idx = define.define_var(s, kindp, mem.get_long(refs, 0))
         int var_kind = mem.get_int(kindp, 0)
-        free(kindp)
         (s as *JSParseState).hoisted_code_len = (s as *JSParseState).hoisted_code_len + 3 + 3
         if var_kind == consts.JS_VARREF_KIND_VAR {
             cf = jstag.value_to_ptr((s as *JSParseState).cur_func)
@@ -128,5 +129,4 @@ js_parse_function_decl(s: ptr, func_type: int, func_name: long) {
 
     // pop the two refs (top_gc_ref currently = &bfunc_ref)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(refs, 8)
-    free(refs)
 }
