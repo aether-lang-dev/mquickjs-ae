@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *"        # nightly: longer fuzz campaign
+  workflow_dispatch:
+    inputs:
+      bench:
+        description: "Also run scripts/bench.sh (vs upstream C)"
+        type: boolean
+        default: false
+
+# Toolchain pins live in ./ci-pins (AETHER_REF, AEB_REF).
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # scripts/ build upstream refs in worktrees
+
+      - name: Read toolchain pins
+        run: grep -E '^[A-Z_]+=' ci-pins >> "$GITHUB_ENV"
+
+      - name: Install packages
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y gcc make bc pkg-config valgrind python3 curl xz-utils
+
+      - name: Cache Aether build
+        id: aether-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/aether
+          key: aether-${{ env.AETHER_REF }}-${{ runner.os }}
+
+      - name: Build Aether ${{ env.AETHER_REF }}
+        if: steps.aether-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "$AETHER_REF" https://github.com/aether-lang-dev/aether.git ~/aether
+          make -C ~/aether -j"$(nproc)" compiler ae stdlib
+
+      - name: Build + install aeb ${{ env.AEB_REF }}
+        run: |
+          git clone https://github.com/aether-lang-dev/aeb.git ~/aeb
+          git -C ~/aeb checkout "$AEB_REF"
+          export AETHER_HOME=~/aether AETHER=~/aether/build/ae PATH=~/aether/build:$PATH
+          make -C ~/aeb install
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Environment for the build
+        run: |
+          echo "AETHER=$HOME/aether" >> "$GITHUB_ENV"
+          echo "AETHER_HOME=$HOME/aether" >> "$GITHUB_ENV"
+          echo "MQJS_AETHER_HOME=$HOME/aether" >> "$GITHUB_ENV"
+          echo "$HOME/aether/build" >> "$GITHUB_PATH"
+
+      - name: Conformance gate (aeb .tests.ae)
+        run: aeb .tests.ae
+
+      - name: Unit tests (tests/ae, std.spec)
+        run: ./run-ae-tests.sh
+
+      - name: Differential vs upstream C + Bellard's dtoa/libm tests
+        run: scripts/diff-upstream.sh
+
+      - name: Valgrind memcheck
+        run: ./run-valgrind.sh
+
+      - name: Fuzz (ASAN)
+        run: |
+          if [ "${{ github.event_name }}" = schedule ]; then n=20000; else n=1000; fi
+          scripts/fuzz.sh -n "$n" -s "${{ github.run_number }}"
+
+      - name: Upload fuzz crashes
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: target/fuzz/crashes/
+          if-no-files-found: ignore
+
+      - name: Benchmark vs upstream C (informational)
+        if: github.event_name == 'workflow_dispatch' && inputs.bench
+        run: scripts/bench.sh --octane
