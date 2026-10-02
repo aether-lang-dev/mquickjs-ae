@@ -6,6 +6,10 @@
 // are removed.
 
 import std.mem
+import std.os
+import std.fs
+import std.io
+import std.string
 import ae.jstag
 import ae.consts
 
@@ -23,11 +27,8 @@ extern JS_NewDate(ctx: ptr, epoch_ms: float) -> long
 extern JS_IsNumber(ctx: ptr, val: long) -> int
 extern JS_ToNumber(ctx: ptr, pres: ptr, val: long) -> int
 extern JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long
-extern mqjs_get_date_ms() -> long
-extern mqjs_get_time_ms() -> long
 extern JS_ToCString(ctx: ptr, val: long, buf: ptr) -> ptr
 extern JS_Eval(ctx: ptr, input: ptr, input_len: int, filename: ptr, eval_flags: int) -> long
-extern load_file(filename: ptr, plen: ptr) -> ptr
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 extern strlen(s: ptr) -> long
@@ -49,7 +50,9 @@ extern JS_SetPropertyStr(ctx: ptr, this_obj: long, str: ptr, val: long) -> long
 extern JS_PushGCRef(ctx: ptr, ref: ptr) -> ptr
 extern JS_PopGCRef(ctx: ptr, ref: ptr) -> long
 extern mqjs_compile_new_ctx(mem_buf: ptr, mem_size: long) -> ptr
-extern mqjs_write_bytecode(outfilename: ptr, hdr: ptr, hdr_len: int, data_buf: ptr, data_len: int)
+extern JS_StackCheck(ctx: ptr, len: int) -> int
+extern JS_PushArg(ctx: ptr, val: long)
+extern JS_Call(ctx: ptr, call_flags: int) -> long
 extern JS_PrepareBytecode(ctx: ptr, hdr: ptr, pdata_buf: ptr, pdata_len: ptr, eval_code: long)
 extern JS_PrepareBytecode64to32(ctx: ptr, hdr: ptr, pdata_buf: ptr, pdata_len: ptr, eval_code: long) -> int
 extern JS_RelocateBytecode2(ctx: ptr, hdr: ptr, buf: ptr, buf_len: int, new_base_addr: long, update_atoms: int) -> int
@@ -66,7 +69,7 @@ extern mqjs_timer_list() -> ptr
 exports (js_gc, is_word, find_keyword, js_print, js_date_now,
          js_performance_now, js_date_constructor, js_load, term_get_color,
          dump_error, eval_buf, eval_file, compile_file,
-         js_setTimeout, js_clearTimeout)
+         js_setTimeout, js_clearTimeout, run_timers)
 
 
 ch_argv(argv: ptr, i: int) -> long { return mem.get_long(mem.long_to_ptr(mem.ptr_to_long(argv) + i * 8), 0) }
@@ -100,7 +103,7 @@ js_load(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     filename = JS_ToCString(ctx, ch_argv(argv, 0), cbuf)
     if mem.ptr_to_long(filename) == 0 { free(cbuf)  return jstag.JS_EXCEPTION }
     plen = malloc(4)
-    buf = load_file(filename, plen)
+    buf = load_file_(filename, plen)
     int buf_len = mem.get_int(plen, 0)
     free(plen)
     long ret = JS_Eval(ctx, buf, buf_len, filename, 0)
@@ -111,12 +114,12 @@ js_load(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_date_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 js_date_now(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    return JS_NewInt64(ctx, mqjs_get_date_ms())
+    return JS_NewInt64(ctx, os.now_unix_ms())
 }
 
 // JSValue js_performance_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 js_performance_now(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    return JS_NewInt64(ctx, mqjs_get_time_ms())
+    return JS_NewInt64(ctx, os.now_monotonic_ms())
 }
 
 // JSValue js_date_constructor(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
@@ -124,7 +127,7 @@ js_date_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     int ac = argc & (0 - 1 - consts.FRAME_CF_CTOR)
     float val = 0.0
     if ac == 0 {
-        long ms = mqjs_get_date_ms()
+        long ms = os.now_unix_ms()
         val = ms
     } else { if ac == 1 && JS_IsNumber(ctx, ch_argv(argv, 0)) != 0 {
         pd = malloc(8)
@@ -294,7 +297,7 @@ eval_buf(ctx: ptr, eval_str: ptr, filename: ptr, is_repl: int, parse_flags: int)
 // global scriptArgs array (GC-rooting val and arr across the allocations).
 eval_file(ctx: ptr, filename: ptr, argc: int, argv: ptr, parse_flags: int, allow_bytecode: int) -> int {
     plen = malloc(4)
-    buf = load_file(filename, plen)
+    buf = load_file_(filename, plen)
     int buf_len = mem.get_int(plen, 0)
     free(plen)
 
@@ -361,7 +364,7 @@ compile_file(filename: ptr, outfilename: ptr, mem_size: long, dump_memory: int, 
     mem_buf = malloc(mem_size)
     ctx = mqjs_compile_new_ctx(mem_buf, mem_size)
 
-    eval_str = load_file(filename, null)
+    eval_str = load_file_(filename, null)
     long val = JS_Parse(ctx, eval_str, strlen(eval_str), filename, parse_flags)
     free(eval_str)
     if val == jstag.JS_EXCEPTION {
@@ -399,7 +402,7 @@ compile_file(filename: ptr, outfilename: ptr, mem_size: long, dump_memory: int, 
 
     data_buf = mem.get_ptr(pdata_buf, 0)
     int data_len = mem.get_int(pdata_len, 0)
-    mqjs_write_bytecode(outfilename, hdr, hdr_len, data_buf, data_len)
+    write_bytecode_(outfilename, hdr, hdr_len, data_buf, data_len)
 
     free(pdata_len)
     free(pdata_buf)
@@ -441,7 +444,7 @@ js_setTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
             // pfunc = JS_AddGCRef(ctx, &th->func); *pfunc = argv[0]
             pfunc = JS_AddGCRef(ctx, mem.long_to_ptr(mem.ptr_to_long(th) + TIMER_FUNC))
             mem.set_long(pfunc, 0, fn_val)
-            mem.set_long(th, TIMER_TIMEOUT, mqjs_get_time_ms() + delay)
+            mem.set_long(th, TIMER_TIMEOUT, os.now_monotonic_ms() + delay)
             mem.set_int(th, TIMER_ALLOCATED, 1)
             return JS_NewInt32(ctx, i)
         }
@@ -467,4 +470,80 @@ js_clearTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         }
     }
     return jstag.JS_UNDEFINED
+}
+
+
+// ---- OS glue on std.fs / std.os (was C in mqjs.c) ----
+
+// load_file: read a whole file into a malloc'd, NUL-terminated buffer
+// (the parser relies on the terminator); *plen = length. On error, print
+// the error and exit(1), like the C original's perror + exit.
+load_file_(filename: ptr, plen: ptr) -> ptr {
+    data, n, err = fs.read_binary(string.from_cstr(filename))
+    if string.length(err) > 0 {
+        io.stderr_write("${err}\n")
+        os.exit(1)
+    }
+    buf = malloc(n + 1)
+    if n > 0 { mem.copy(buf, string.bytes(data) as ptr, n) }
+    mem.set_byte(buf, n, 0)
+    if plen != null { mem.set_int(plen, 0, n) }
+    return buf
+}
+
+// write_bytecode: header then data to `outfilename`, as one write.
+write_bytecode_(outfilename: ptr, hdr: ptr, hdr_len: int, data_buf: ptr, data_len: int) {
+    long total = hdr_len + data_len
+    out = malloc(total)
+    mem.copy(out, hdr, hdr_len)
+    mem.copy(mem.long_to_ptr(mem.ptr_to_long(out) + hdr_len), data_buf, data_len)
+    path = string.from_cstr(outfilename)
+    err = fs.write_binary(path, (out as byte[])[0..total])
+    free(out)
+    if string.length(err) > 0 {
+        io.stderr_write("${path}: ${err}\n")
+        os.exit(1)
+    }
+}
+
+// run_timers: fire expired setTimeout callbacks until none remain,
+// sleeping until the next deadline (at most 1s at a time).
+// @c_callback keeps the bare C symbol: called from mqjs.c.
+@c_callback
+run_timers(ctx: ptr) {
+    base = mqjs_timer_list()
+    int more = 1
+    while more != 0 {
+        long min_delay = 1000
+        long cur_time = os.now_monotonic_ms()
+        int has_timer = 0
+        int i = 0
+        while i < MAX_TIMERS {
+            th = timer_at(base, i)
+            if mem.get_int(th, TIMER_ALLOCATED) != 0 {
+                has_timer = 1
+                long delay = mem.get_long(th, TIMER_TIMEOUT) - cur_time
+                if delay <= 0 {
+                    // the timer expired: call func with this = null
+                    if JS_StackCheck(ctx, 2) != 0 { dump_error(ctx)  os.exit(1) }
+                    JS_PushArg(ctx, mem.get_long(th, TIMER_FUNC))
+                    JS_PushArg(ctx, jstag.JS_NULL)
+                    JS_DeleteGCRef(ctx, mem.long_to_ptr(mem.ptr_to_long(th) + TIMER_FUNC))
+                    mem.set_int(th, TIMER_ALLOCATED, 0)
+                    long ret = JS_Call(ctx, 0)
+                    if ret == jstag.JS_EXCEPTION { dump_error(ctx)  os.exit(1) }
+                    min_delay = 0
+                    i = MAX_TIMERS
+                } else if delay < min_delay {
+                    min_delay = delay
+                }
+            }
+            i = i + 1
+        }
+        if has_timer == 0 {
+            more = 0
+        } else if min_delay > 0 {
+            sleep(min_delay)
+        }
+    }
 }

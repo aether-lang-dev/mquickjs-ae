@@ -39,7 +39,6 @@
 #include "readline_tty.h"
 #include "mquickjs.h"
 
-uint8_t *load_file(const char *filename, int *plen);
 int mqjs_dsl_demo(void);   /* ae/mqjs_dsl: declarative run(){...} demo */
 
 JSValue js_print(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv); /* ae/cli_host.ae */
@@ -49,32 +48,7 @@ JSValue js_gc(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv); /* ae
 /* host accessors for the Aether CLI builtins (ae/cli_host.ae). */
 void *mqjs_stdout(void) { return stdout; }
 
-#if defined(__linux__) || defined(__APPLE__)
-static int64_t get_time_ms(void)
-{
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    return (uint64_t)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
-}
-#else
-static int64_t get_time_ms(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-}
-#endif
-
-static int64_t get_date_ms(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-}
-
-/* host time accessors for the Aether CLI builtins (ae/cli_host.ae). */
-int64_t mqjs_get_time_ms(void) { return get_time_ms(); }
-int64_t mqjs_get_date_ms(void) { return get_date_ms(); }
+/* Date.now / performance.now use std.os clocks in ae/cli_host.ae. */
 
 JSValue js_date_constructor(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv); /* ae/cli_host.ae */
 JSValue js_date_now(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv); /* ae/cli_host.ae */
@@ -104,56 +78,8 @@ void *mqjs_timer_list(void) { return js_timer_list; }
 JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv);
 JSValue js_clearTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv);
 
-static void run_timers(JSContext *ctx)
-{
-    int64_t min_delay, delay, cur_time;
-    BOOL has_timer;
-    int i;
-    JSTimer *th;
-    struct timespec ts;
-
-    for(;;) {
-        min_delay = 1000;
-        cur_time = get_time_ms();
-        has_timer = FALSE;
-        for(i = 0; i < MAX_TIMERS; i++) {
-            th = &js_timer_list[i];
-            if (th->allocated) {
-                has_timer = TRUE;
-                delay = th->timeout - cur_time;
-                if (delay <= 0) {
-                    JSValue ret;
-                    /* the timer expired */
-                    if (JS_StackCheck(ctx, 2))
-                        goto fail;
-                    JS_PushArg(ctx, th->func.val); /* func name */
-                    JS_PushArg(ctx, JS_NULL); /* this */
-                    
-                    JS_DeleteGCRef(ctx, &th->func);
-                    th->allocated = FALSE;
-                    
-                    ret = JS_Call(ctx, 0);
-                    if (JS_IsException(ret)) {
-                    fail:
-                        dump_error(ctx);
-                        exit(1);
-                    }
-                    min_delay = 0;
-                    break;
-                } else if (delay < min_delay) {
-                    min_delay = delay;
-                }
-            }
-        }
-        if (!has_timer)
-            break;
-        if (min_delay > 0) {
-            ts.tv_sec = min_delay / 1000;
-            ts.tv_nsec = (min_delay % 1000) * 1000000;
-            nanosleep(&ts, NULL);
-        }
-    }
-}
+/* run_timers lives in ae/cli_host.ae (Aether: std.os clock + sleep). */
+void run_timers(JSContext *ctx);
 
 #include "mqjs_stdlib.h"
 
@@ -170,28 +96,7 @@ static void run_timers(JSContext *ctx)
 #define STYLE_RESULT     COLOR_BRIGHT_WHITE
 #define STYLE_ERROR_MSG  COLOR_BRIGHT_RED
 
-uint8_t *load_file(const char *filename, int *plen)
-{
-    FILE *f;
-    uint8_t *buf;
-    int buf_len;
-
-    f = fopen(filename, "rb");
-    if (!f) {
-        perror(filename);
-        exit(1);
-    }
-    fseek(f, 0, SEEK_END);
-    buf_len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    buf = malloc(buf_len + 1);
-    fread(buf, 1, buf_len, f);
-    buf[buf_len] = '\0';
-    fclose(f);
-    if (plen)
-        *plen = buf_len;
-    return buf;
-}
+/* load_file lives in ae/cli_host.ae (std.fs.read_binary). */
 
 static int js_log_err_flag;
 
@@ -214,18 +119,7 @@ void *mqjs_compile_new_ctx(void *mem_buf, size_t mem_size)
     JS_SetLogFunc(ctx, js_log_func);
     return ctx;
 }
-void mqjs_write_bytecode(const char *outfilename, const void *hdr, int hdr_len,
-                         const void *data_buf, uint32_t data_len)
-{
-    FILE *f = fopen(outfilename, "wb");
-    if (!f) {
-        perror(outfilename);
-        exit(1);
-    }
-    fwrite(hdr, 1, hdr_len, f);
-    fwrite(data_buf, 1, data_len, f);
-    fclose(f);
-}
+/* the bytecode file write lives in ae/cli_host.ae (std.fs.write_binary). */
 
 static void js_log_func(void *opaque, const void *buf, size_t buf_len)
 {

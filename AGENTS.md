@@ -172,7 +172,15 @@ alter them. That is how the N3 generator port was verified.
     engine translation unit. Consumers import it.
   - `tests/ae` moved from the retired `aeocha` to `std.spec`, ending with
     `return spec.run_summary(fw)`.
-- Follow-ups (not blocking):
+- **CLI host OS glue is on Aether std.** `Date.now` and `performance.now` use
+  `std.os` clocks. `load_file` and the bytecode write use `std.fs`.
+  `run_timers` is Aether: `std.os` clock plus the built-in `sleep`. The mqjs
+  node therefore declares `aether_caps("fs,os")`, because `--emit=lib`
+  refuses gated std modules without it.
+- **The VM brackets GC-capable calls the way upstream does.** Each slow-path
+  call stores `cur_pc` before it and reloads `b`/`pc` after it, because the
+  compacting GC can move bytecode. `tests/test_gc_relocation.js` guards this.
+- - Follow-ups (not blocking):
   - Consolidate the identical `_` helper copies (`argv_get_` ×10,
     `gc_push_` ×7, …) into shared modules.
   - Clear the 24 W1001 unused-variable warnings.
