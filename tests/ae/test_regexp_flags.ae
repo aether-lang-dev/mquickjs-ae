@@ -1,6 +1,6 @@
 // Unit test for ae/regexp_flags — parse/format round-trip.
 
-import aeocha
+import std.spec
 import ae.regexp_flags
 import std.mem
 
@@ -9,56 +9,56 @@ extern free(p: ptr)
 extern strcpy(d: ptr, s: ptr) -> ptr
 
 main() {
-    fw = aeocha.init()
+    fw = spec.init()
 
-    aeocha.describe(fw, "regexp_flags") {
-        aeocha.it("parses gimsuy") callback {
+    spec.describe(fw, "regexp_flags") {
+        spec.it("parses gimsuy") callback {
             s = malloc(16)
             strcpy(s, "gi")
             slot = malloc(8)
             n = regexp_flags.js_parse_regexp_flags(slot, s)
             fl = mem.get_int(slot, 0)
-            aeocha.assert_eq(n, 2, "2 chars")
-            aeocha.assert_eq(fl, 3, "g|i = 3")
+            spec.assert_eq(n, 2, "2 chars")
+            spec.assert_eq(fl, 3, "g|i = 3")
             free(slot)
             free(s)
         }
-        aeocha.it("stops at unknown flag") callback {
+        spec.it("stops at unknown flag") callback {
             s = malloc(16)
             strcpy(s, "gx")
             slot = malloc(8)
             n = regexp_flags.js_parse_regexp_flags(slot, s)
             fl = mem.get_int(slot, 0)
-            aeocha.assert_eq(n, 1, "1 char")
-            aeocha.assert_eq(fl, 1, "g = 1")
+            spec.assert_eq(n, 1, "1 char")
+            spec.assert_eq(fl, 1, "g = 1")
             free(slot)
             free(s)
         }
-        aeocha.it("stops at repeated flag") callback {
+        spec.it("stops at repeated flag") callback {
             s = malloc(16)
             strcpy(s, "gg")
             slot = malloc(8)
             n = regexp_flags.js_parse_regexp_flags(slot, s)
-            aeocha.assert_eq(n, 1, "1 char (repeat stops)")
+            spec.assert_eq(n, 1, "1 char (repeat stops)")
             free(slot)
             free(s)
         }
-        aeocha.it("formats back to chars") callback {
+        spec.it("formats back to chars") callback {
             buf = malloc(8)
             // g|m|y = 1|4|32 = 37
             n = regexp_flags.js_regexp_flags_str(buf, 37)
-            aeocha.assert_eq(n, 3, "3 chars")
+            spec.assert_eq(n, 3, "3 chars")
             c0 = mem.get_byte(buf, 0)
             c1 = mem.get_byte(buf, 1)
             c2 = mem.get_byte(buf, 2)
             term = mem.get_byte(buf, 3)
-            aeocha.assert_eq(c0, 0x67, "g")
-            aeocha.assert_eq(c1, 0x6d, "m")
-            aeocha.assert_eq(c2, 0x79, "y")
-            aeocha.assert_eq(term, 0, "nul")
+            spec.assert_eq(c0, 0x67, "g")
+            spec.assert_eq(c1, 0x6d, "m")
+            spec.assert_eq(c2, 0x79, "y")
+            spec.assert_eq(term, 0, "nul")
             free(buf)
         }
     }
 
-    aeocha.run_summary(fw)
+    return spec.run_summary(fw)
 }

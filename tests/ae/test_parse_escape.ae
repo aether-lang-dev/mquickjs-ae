@@ -1,6 +1,6 @@
 // Unit test for ae/parse_escape.
 
-import aeocha
+import std.spec
 import ae.parse_escape
 import std.mem
 
@@ -9,75 +9,75 @@ extern free(p: ptr)
 extern strcpy(d: ptr, s: ptr) -> ptr
 
 main() {
-    fw = aeocha.init()
+    fw = spec.init()
 
-    aeocha.describe(fw, "parse_escape") {
-        aeocha.it("simple escapes") callback {
+    spec.describe(fw, "parse_escape") {
+        spec.it("simple escapes") callback {
             s = malloc(8)
             strcpy(s, "n")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
             ln = mem.get_long(slot, 0)
-            aeocha.assert_eq(c, 10, "\\n -> 10")
-            aeocha.assert_eq(ln, 1, "len 1")
+            spec.assert_eq(c, 10, "\\n -> 10")
+            spec.assert_eq(ln, 1, "len 1")
             strcpy(s, "t")
             c2 = parse_escape.js_parse_escape(s, slot)
-            aeocha.assert_eq(c2, 9, "\\t -> 9")
+            spec.assert_eq(c2, 9, "\\t -> 9")
             free(slot)
             free(s)
         }
-        aeocha.it("hex escape") callback {
+        spec.it("hex escape") callback {
             s = malloc(8)
             strcpy(s, "x41")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
             ln = mem.get_long(slot, 0)
-            aeocha.assert_eq(c, 0x41, "\\x41 -> A")
-            aeocha.assert_eq(ln, 3, "len 3")
+            spec.assert_eq(c, 0x41, "\\x41 -> A")
+            spec.assert_eq(ln, 3, "len 3")
             free(slot)
             free(s)
         }
-        aeocha.it("unicode 4-digit") callback {
+        spec.it("unicode 4-digit") callback {
             s = malloc(8)
             strcpy(s, "u20ac")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
             ln = mem.get_long(slot, 0)
-            aeocha.assert_eq(c, 0x20ac, "\\u20ac euro")
-            aeocha.assert_eq(ln, 5, "len 5")
+            spec.assert_eq(c, 0x20ac, "\\u20ac euro")
+            spec.assert_eq(ln, 5, "len 5")
             free(slot)
             free(s)
         }
-        aeocha.it("unicode braced") callback {
+        spec.it("unicode braced") callback {
             s = malloc(16)
             strcpy(s, "u{1f600}")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
             ln = mem.get_long(slot, 0)
-            aeocha.assert_eq(c, 0x1f600, "\\u{1f600}")
-            aeocha.assert_eq(ln, 8, "len 8")
+            spec.assert_eq(c, 0x1f600, "\\u{1f600}")
+            spec.assert_eq(ln, 8, "len 8")
             free(slot)
             free(s)
         }
-        aeocha.it("bad hex returns -1") callback {
+        spec.it("bad hex returns -1") callback {
             s = malloc(8)
             strcpy(s, "xzz")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
-            aeocha.assert_eq(c, 0 - 1, "bad hex")
+            spec.assert_eq(c, 0 - 1, "bad hex")
             free(slot)
             free(s)
         }
-        aeocha.it("unknown escape returns -2") callback {
+        spec.it("unknown escape returns -2") callback {
             s = malloc(8)
             strcpy(s, "q")
             slot = malloc(8)
             c = parse_escape.js_parse_escape(s, slot)
-            aeocha.assert_eq(c, 0 - 2, "unknown")
+            spec.assert_eq(c, 0 - 2, "unknown")
             free(slot)
             free(s)
         }
     }
 
-    aeocha.run_summary(fw)
+    return spec.run_summary(fw)
 }

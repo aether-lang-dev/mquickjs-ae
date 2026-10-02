@@ -1,41 +1,36 @@
 // Unit test for ae/jsbool short-float codec, against C reference
 // values computed from the upstream rotl64+addend encoding.
 
-import aeocha
+import std.spec
 import ae.jsbool
 import std.mem
 
-assert_long_eq(actual: long, expected: long, msg: string) {
-    if actual != expected {
-        aeocha.fail("${msg} — expected ${expected}, got ${actual}")
-    }
-}
 
 main() {
-    fw = aeocha.init()
+    fw = spec.init()
 
-    aeocha.describe(fw, "short-float codec") {
-        aeocha.it("to_short_float matches C reference") callback {
+    spec.describe(fw, "short-float codec") {
+        spec.it("to_short_float matches C reference") callback {
             // 1.5 -> 0x7f80000000000005
             v = jsbool.js_to_short_float(1.5)
-            assert_long_eq(v, 0x7f80000000000005, "1.5 encode")
+            spec.assert_eq_long(v, 0x7f80000000000005, "1.5 encode")
             // 100.0 -> 0x8590000000000005
             v2 = jsbool.js_to_short_float(100.0)
-            assert_long_eq(v2, 0x8590000000000005, "100 encode")
+            spec.assert_eq_long(v2, 0x8590000000000005, "100 encode")
         }
-        aeocha.it("round-trips") callback {
+        spec.it("round-trips") callback {
             a = jsbool.js_to_short_float(1.5)
             b = jsbool.js_get_short_float(a)
             ok = 0
             if b == 1.5 { ok = 1 }
-            aeocha.assert_eq(ok, 1, "1.5 round-trip")
+            spec.assert_eq(ok, 1, "1.5 round-trip")
             c = jsbool.js_to_short_float(0.0 - 2.25)
             d = jsbool.js_get_short_float(c)
             ok2 = 0
             if d == (0.0 - 2.25) { ok2 = 1 }
-            aeocha.assert_eq(ok2, 1, "-2.25 round-trip")
+            spec.assert_eq(ok2, 1, "-2.25 round-trip")
         }
     }
 
-    aeocha.run_summary(fw)
+    return spec.run_summary(fw)
 }

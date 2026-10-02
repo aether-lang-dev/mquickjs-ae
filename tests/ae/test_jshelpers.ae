@@ -1,6 +1,6 @@
 // Unit test for ae/jshelpers.
 
-import aeocha
+import std.spec
 import ae.jshelpers
 import std.mem
 
@@ -9,32 +9,32 @@ extern free(p: ptr)
 extern strcpy(d: ptr, s: ptr) -> ptr
 
 main() {
-    fw = aeocha.init()
+    fw = spec.init()
 
-    aeocha.describe(fw, "jshelpers") {
-        aeocha.it("is_ascii_string") callback {
+    spec.describe(fw, "jshelpers") {
+        spec.it("is_ascii_string") callback {
             s = malloc(16)
             strcpy(s, "hello")
             r = jshelpers.is_ascii_string(s, 5)
-            aeocha.assert_eq(r, 1, "ascii")
+            spec.assert_eq(r, 1, "ascii")
             mem.set_byte(s, 2, 0xc3)
             r2 = jshelpers.is_ascii_string(s, 5)
-            aeocha.assert_eq(r2, 0, "non-ascii")
+            spec.assert_eq(r2, 0, "non-ascii")
             free(s)
         }
-        aeocha.it("skip_spaces") callback {
+        spec.it("skip_spaces") callback {
             s = malloc(16)
             strcpy(s, "   \tx")
             r = jshelpers.skip_spaces(s)
-            aeocha.assert_eq(r, 4, "4 ws")
+            spec.assert_eq(r, 4, "4 ws")
             t = malloc(8)
             strcpy(t, "abc")
             r2 = jshelpers.skip_spaces(t)
-            aeocha.assert_eq(r2, 0, "no ws")
+            spec.assert_eq(r2, 0, "no ws")
             free(t)
             free(s)
         }
-        aeocha.it("js_reverse_val") callback {
+        spec.it("js_reverse_val") callback {
             tab = malloc(40)
             i = 0
             while i < 5 {
@@ -45,44 +45,44 @@ main() {
             v0 = mem.get_long(tab, 0)
             v4 = mem.get_long(tab, 32)
             v2 = mem.get_long(tab, 16)
-            aeocha.assert_eq(v0, 400, "first now 400")
-            aeocha.assert_eq(v4, 0, "last now 0")
-            aeocha.assert_eq(v2, 200, "mid unchanged")
+            spec.assert_eq(v0, 400, "first now 400")
+            spec.assert_eq(v4, 0, "last now 0")
+            spec.assert_eq(v2, 200, "mid unchanged")
             free(tab)
         }
-        aeocha.it("parse_digits clamps and advances") callback {
+        spec.it("parse_digits clamps and advances") callback {
             s = malloc(16)
             strcpy(s, "123abc")
             slot = malloc(8)
             mem.set_ptr(slot, 0, s)
             v = jshelpers.parse_digits(slot)
-            aeocha.assert_eq(v, 123, "v=123")
+            spec.assert_eq(v, 123, "v=123")
             adv = mem.get_ptr(slot, 0)
             delta = mem.ptr_to_long(adv) - mem.ptr_to_long(s)
-            aeocha.assert_eq(delta, 3, "advanced 3")
+            spec.assert_eq(delta, 3, "advanced 3")
             free(slot)
             free(s)
         }
-        aeocha.it("unicode_is_space_non_ascii") callback {
+        spec.it("unicode_is_space_non_ascii") callback {
             a = jshelpers.unicode_is_space_non_ascii(0x00A0)
             b = jshelpers.unicode_is_space_non_ascii(0x2003)
             c = jshelpers.unicode_is_space_non_ascii(0x0041)
-            aeocha.assert_eq(a, 1, "nbsp")
-            aeocha.assert_eq(b, 1, "em space")
-            aeocha.assert_eq(c, 0, "letter A")
+            spec.assert_eq(a, 1, "nbsp")
+            spec.assert_eq(b, 1, "em space")
+            spec.assert_eq(c, 0, "letter A")
         }
-        aeocha.it("get_line_col") callback {
+        spec.it("get_line_col") callback {
             s = malloc(32)
             strcpy(s, "ab\ncde\nf")   // 2 newlines, col after last = 1 (f)
             slot = malloc(8)
             ln = jshelpers.get_line_col(slot, s, 8)
             col = mem.get_int(slot, 0)
-            aeocha.assert_eq(ln, 2, "2 lines")
-            aeocha.assert_eq(col, 1, "col 1")
+            spec.assert_eq(ln, 2, "2 lines")
+            spec.assert_eq(col, 1, "col 1")
             free(slot)
             free(s)
         }
-        aeocha.it("range_compress merges overlaps") callback {
+        spec.it("range_compress merges overlaps") callback {
             // [0,5) [3,8) [10,12) -> [0,8) [10,12)  (count 2)
             tab = malloc(64)
             mem.set_uint32(tab, 0, 0)
@@ -92,18 +92,18 @@ main() {
             mem.set_uint32(tab, 16, 10)
             mem.set_uint32(tab, 20, 12)
             n = jshelpers.range_compress(tab, 3)
-            aeocha.assert_eq(n, 2, "2 ranges")
+            spec.assert_eq(n, 2, "2 ranges")
             s0 = mem.get_uint32(tab, 0)
             e0 = mem.get_uint32(tab, 4)
             s1 = mem.get_uint32(tab, 8)
             e1 = mem.get_uint32(tab, 12)
-            aeocha.assert_eq(s0, 0, "r0.start")
-            aeocha.assert_eq(e0, 8, "r0.end merged")
-            aeocha.assert_eq(s1, 10, "r1.start")
-            aeocha.assert_eq(e1, 12, "r1.end")
+            spec.assert_eq(s0, 0, "r0.start")
+            spec.assert_eq(e0, 8, "r0.end merged")
+            spec.assert_eq(s1, 10, "r1.start")
+            spec.assert_eq(e1, 12, "r1.end")
             free(tab)
         }
-        aeocha.it("lre header readers") callback {
+        spec.it("lre header readers") callback {
             buf = malloc(8)
             mem.set_byte(buf, 0, 0x05)   // flags lo
             mem.set_byte(buf, 1, 0x00)   // flags hi
@@ -112,12 +112,12 @@ main() {
             cc = jshelpers.lre_get_capture_count(buf)
             ac = jshelpers.lre_get_alloc_count(buf)
             fl = jshelpers.lre_get_flags(buf)
-            aeocha.assert_eq(cc, 3, "cap=3")
-            aeocha.assert_eq(ac, 10, "alloc=3*2+4")
-            aeocha.assert_eq(fl, 5, "flags=5")
+            spec.assert_eq(cc, 3, "cap=3")
+            spec.assert_eq(ac, 10, "alloc=3*2+4")
+            spec.assert_eq(fl, 5, "flags=5")
             free(buf)
         }
     }
 
-    aeocha.run_summary(fw)
+    return spec.run_summary(fw)
 }
