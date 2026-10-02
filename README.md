@@ -1,7 +1,7 @@
 MicroQuickJS for Aether
 =======================
 
-[![CI](https://github.com/aether-lang-dev/mquickjs-port/actions/workflows/ci.yml/badge.svg)](https://github.com/aether-lang-dev/mquickjs-port/actions/workflows/ci.yml)
+[![CI](https://github.com/aether-lang-dev/mquickjs-ae/actions/workflows/ci.yml/badge.svg)](https://github.com/aether-lang-dev/mquickjs-ae/actions/workflows/ci.yml)
 
 A port of Fabrice Bellard and Charlie Gordon's
 [MicroQuickJS](https://github.com/bellard/mquickjs) (MQuickJS) JavaScript

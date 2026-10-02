@@ -1,4 +1,4 @@
-# Notes for agents working on mquickjs-port
+# Notes for agents working on mquickjs-ae
 
 These notes are short and opinionated. They are written for an agent (or a
 human) picking up mid-task, so re-read them at the start of every session.
