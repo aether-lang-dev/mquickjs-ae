@@ -1,0 +1,378 @@
+// Unit test for ae/opcode_data, ae/opcodes and ae/reopcodes — the
+// bytecode and regexp opcode tables. Expected values are transcribed from
+// mquickjs_opcode.h (the DEF/REDEF/FMT X-macro lists; the `#if 0` block of
+// short-jump/call opcodes is excluded, as in the C build): the opcode index
+// is its position in the DEF list, fmt is its position in the FMT list.
+
+import std.spec
+import ae.opcode_data
+import ae.opcodes
+import ae.reopcodes
+
+// FMT indices (order of FMT() in mquickjs_opcode.h)
+const F_none = 0
+const F_none_int = 1
+const F_none_loc = 2
+const F_none_arg = 3
+const F_none_var_ref = 4
+const F_u8 = 5
+const F_i8 = 6
+const F_loc8 = 7
+const F_const8 = 8
+const F_label8 = 9
+const F_u16 = 10
+const F_i16 = 11
+const F_label16 = 12
+const F_npop = 13
+const F_npopx = 14
+const F_loc = 15
+const F_arg = 16
+const F_var_ref = 17
+const F_u32 = 18
+const F_i32 = 19
+const F_const16 = 20
+const F_label = 21
+const F_value = 22
+
+chk(op: int, size: int, n_pop: int, n_push: int, fmt: int) {
+    spec.assert_eq(opcode_data.oi_size(op), size, "size")
+    spec.assert_eq(opcode_data.oi_n_pop(op), n_pop, "n_pop")
+    spec.assert_eq(opcode_data.oi_n_push(op), n_push, "n_push")
+    spec.assert_eq(opcode_data.oi_fmt(op), fmt, "fmt")
+}
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "opcode_data") {
+        spec.it("op count is the number of active DEF entries") callback {
+            spec.assert_eq(opcode_data.get_op_count(), 126, "OP_COUNT")
+        }
+        spec.it("push/stack/call/field/var/jump ops (0..56) match the DEF table") callback {
+            chk(0, 1, 0, 0, F_none)    // invalid
+            chk(1, 5, 0, 1, F_value)    // push_value
+            chk(2, 3, 0, 1, F_const16)    // push_const
+            chk(3, 3, 0, 1, F_const16)    // fclosure
+            chk(4, 1, 0, 1, F_none)    // undefined
+            chk(5, 1, 0, 1, F_none)    // null
+            chk(6, 1, 0, 1, F_none)    // push_this
+            chk(7, 1, 0, 1, F_none)    // push_false
+            chk(8, 1, 0, 1, F_none)    // push_true
+            chk(9, 3, 0, 1, F_u16)    // object
+            chk(10, 1, 0, 1, F_none)    // this_func
+            chk(11, 1, 0, 1, F_none)    // arguments
+            chk(12, 1, 0, 1, F_none)    // new_target
+            chk(13, 1, 1, 0, F_none)    // drop
+            chk(14, 1, 2, 1, F_none)    // nip
+            chk(15, 1, 1, 2, F_none)    // dup
+            chk(16, 1, 2, 3, F_none)    // dup1
+            chk(17, 1, 2, 4, F_none)    // dup2
+            chk(18, 1, 2, 3, F_none)    // insert2
+            chk(19, 1, 3, 4, F_none)    // insert3
+            chk(20, 1, 3, 3, F_none)    // perm3
+            chk(21, 1, 4, 4, F_none)    // perm4
+            chk(22, 1, 2, 2, F_none)    // swap
+            chk(23, 1, 3, 3, F_none)    // rot3l
+            chk(24, 3, 1, 1, F_npop)    // call_constructor
+            chk(25, 3, 1, 1, F_npop)    // call
+            chk(26, 3, 2, 1, F_npop)    // call_method
+            chk(27, 3, 0, 1, F_npop)    // array_from
+            chk(28, 1, 1, 0, F_none)    // return
+            chk(29, 1, 0, 0, F_none)    // return_undef
+            chk(30, 1, 1, 0, F_none)    // throw
+            chk(31, 1, 2, 1, F_none)    // regexp
+            chk(32, 3, 1, 1, F_const16)    // get_field
+            chk(33, 3, 1, 2, F_const16)    // get_field2
+            chk(34, 3, 2, 0, F_const16)    // put_field
+            chk(35, 1, 2, 1, F_none)    // get_array_el
+            chk(36, 1, 2, 2, F_none)    // get_array_el2
+            chk(37, 1, 3, 0, F_none)    // put_array_el
+            chk(38, 1, 1, 1, F_none)    // get_length
+            chk(39, 1, 1, 2, F_none)    // get_length2
+            chk(40, 3, 2, 1, F_const16)    // define_field
+            chk(41, 3, 2, 1, F_const16)    // define_getter
+            chk(42, 3, 2, 1, F_const16)    // define_setter
+            chk(43, 1, 2, 1, F_none)    // set_proto
+            chk(44, 3, 0, 1, F_loc)    // get_loc
+            chk(45, 3, 1, 0, F_loc)    // put_loc
+            chk(46, 3, 0, 1, F_arg)    // get_arg
+            chk(47, 3, 1, 0, F_arg)    // put_arg
+            chk(48, 3, 0, 1, F_var_ref)    // get_var_ref
+            chk(49, 3, 1, 0, F_var_ref)    // put_var_ref
+            chk(50, 3, 0, 1, F_var_ref)    // get_var_ref_nocheck
+            chk(51, 3, 1, 0, F_var_ref)    // put_var_ref_nocheck
+            chk(52, 5, 1, 0, F_label)    // if_false
+            chk(53, 5, 1, 0, F_label)    // if_true
+            chk(54, 5, 0, 0, F_label)    // goto
+            chk(55, 5, 0, 1, F_label)    // catch
+            chk(56, 5, 0, 0, F_label)    // gosub
+        }
+        spec.it("control-flow, unary and binary ops (57..92) match the DEF table") callback {
+            chk(57, 1, 1, 0, F_none)    // ret
+            chk(58, 1, 1, 1, F_none)    // for_in_start
+            chk(59, 1, 1, 1, F_none)    // for_of_start
+            chk(60, 1, 1, 3, F_none)    // for_of_next
+            chk(61, 1, 1, 1, F_none)    // neg
+            chk(62, 1, 1, 1, F_none)    // plus
+            chk(63, 1, 1, 1, F_none)    // dec
+            chk(64, 1, 1, 1, F_none)    // inc
+            chk(65, 1, 1, 2, F_none)    // post_dec
+            chk(66, 1, 1, 2, F_none)    // post_inc
+            chk(67, 1, 1, 1, F_none)    // not
+            chk(68, 1, 1, 1, F_none)    // lnot
+            chk(69, 1, 1, 1, F_none)    // typeof
+            chk(70, 1, 2, 1, F_none)    // delete
+            chk(71, 1, 2, 1, F_none)    // mul
+            chk(72, 1, 2, 1, F_none)    // div
+            chk(73, 1, 2, 1, F_none)    // mod
+            chk(74, 1, 2, 1, F_none)    // add
+            chk(75, 1, 2, 1, F_none)    // sub
+            chk(76, 1, 2, 1, F_none)    // pow
+            chk(77, 1, 2, 1, F_none)    // shl
+            chk(78, 1, 2, 1, F_none)    // sar
+            chk(79, 1, 2, 1, F_none)    // shr
+            chk(80, 1, 2, 1, F_none)    // lt
+            chk(81, 1, 2, 1, F_none)    // lte
+            chk(82, 1, 2, 1, F_none)    // gt
+            chk(83, 1, 2, 1, F_none)    // gte
+            chk(84, 1, 2, 1, F_none)    // instanceof
+            chk(85, 1, 2, 1, F_none)    // in
+            chk(86, 1, 2, 1, F_none)    // eq
+            chk(87, 1, 2, 1, F_none)    // neq
+            chk(88, 1, 2, 1, F_none)    // strict_eq
+            chk(89, 1, 2, 1, F_none)    // strict_neq
+            chk(90, 1, 2, 1, F_none)    // and
+            chk(91, 1, 2, 1, F_none)    // xor
+            chk(92, 1, 2, 1, F_none)    // or
+        }
+        spec.it("short-form ops (93..125) match the DEF table") callback {
+            chk(93, 1, 0, 0, F_none)    // nop
+            chk(94, 1, 0, 1, F_none_int)    // push_minus1
+            chk(95, 1, 0, 1, F_none_int)    // push_0
+            chk(96, 1, 0, 1, F_none_int)    // push_1
+            chk(97, 1, 0, 1, F_none_int)    // push_2
+            chk(98, 1, 0, 1, F_none_int)    // push_3
+            chk(99, 1, 0, 1, F_none_int)    // push_4
+            chk(100, 1, 0, 1, F_none_int)    // push_5
+            chk(101, 1, 0, 1, F_none_int)    // push_6
+            chk(102, 1, 0, 1, F_none_int)    // push_7
+            chk(103, 2, 0, 1, F_i8)    // push_i8
+            chk(104, 3, 0, 1, F_i16)    // push_i16
+            chk(105, 2, 0, 1, F_const8)    // push_const8
+            chk(106, 2, 0, 1, F_const8)    // fclosure8
+            chk(107, 1, 0, 1, F_none)    // push_empty_string
+            chk(108, 2, 0, 1, F_loc8)    // get_loc8
+            chk(109, 2, 1, 0, F_loc8)    // put_loc8
+            chk(110, 1, 0, 1, F_none_loc)    // get_loc0
+            chk(111, 1, 0, 1, F_none_loc)    // get_loc1
+            chk(112, 1, 0, 1, F_none_loc)    // get_loc2
+            chk(113, 1, 0, 1, F_none_loc)    // get_loc3
+            chk(114, 1, 1, 0, F_none_loc)    // put_loc0
+            chk(115, 1, 1, 0, F_none_loc)    // put_loc1
+            chk(116, 1, 1, 0, F_none_loc)    // put_loc2
+            chk(117, 1, 1, 0, F_none_loc)    // put_loc3
+            chk(118, 1, 0, 1, F_none_arg)    // get_arg0
+            chk(119, 1, 0, 1, F_none_arg)    // get_arg1
+            chk(120, 1, 0, 1, F_none_arg)    // get_arg2
+            chk(121, 1, 0, 1, F_none_arg)    // get_arg3
+            chk(122, 1, 1, 0, F_none_arg)    // put_arg0
+            chk(123, 1, 1, 0, F_none_arg)    // put_arg1
+            chk(124, 1, 1, 0, F_none_arg)    // put_arg2
+            chk(125, 1, 1, 0, F_none_arg)    // put_arg3
+        }
+        spec.it("regexp opcode sizes match the REDEF table") callback {
+            spec.assert_eq(opcode_data.reop_size(0), 1, "invalid")
+            spec.assert_eq(opcode_data.reop_size(1), 2, "char1")
+            spec.assert_eq(opcode_data.reop_size(2), 3, "char2")
+            spec.assert_eq(opcode_data.reop_size(3), 4, "char3")
+            spec.assert_eq(opcode_data.reop_size(4), 5, "char4")
+            spec.assert_eq(opcode_data.reop_size(5), 1, "dot")
+            spec.assert_eq(opcode_data.reop_size(6), 1, "any")
+            spec.assert_eq(opcode_data.reop_size(7), 1, "space")
+            spec.assert_eq(opcode_data.reop_size(8), 1, "not_space")
+            spec.assert_eq(opcode_data.reop_size(9), 1, "line_start")
+            spec.assert_eq(opcode_data.reop_size(10), 1, "line_start_m")
+            spec.assert_eq(opcode_data.reop_size(11), 1, "line_end")
+            spec.assert_eq(opcode_data.reop_size(12), 1, "line_end_m")
+            spec.assert_eq(opcode_data.reop_size(13), 5, "goto")
+            spec.assert_eq(opcode_data.reop_size(14), 5, "split_goto_first")
+            spec.assert_eq(opcode_data.reop_size(15), 5, "split_next_first")
+            spec.assert_eq(opcode_data.reop_size(16), 1, "match")
+            spec.assert_eq(opcode_data.reop_size(17), 1, "lookahead_match")
+            spec.assert_eq(opcode_data.reop_size(18), 1, "negative_lookahead_match")
+            spec.assert_eq(opcode_data.reop_size(19), 2, "save_start")
+            spec.assert_eq(opcode_data.reop_size(20), 2, "save_end")
+            spec.assert_eq(opcode_data.reop_size(21), 3, "save_reset")
+            spec.assert_eq(opcode_data.reop_size(22), 6, "loop")
+            spec.assert_eq(opcode_data.reop_size(23), 10, "loop_split_goto_first")
+            spec.assert_eq(opcode_data.reop_size(24), 10, "loop_split_next_first")
+            spec.assert_eq(opcode_data.reop_size(25), 10, "loop_check_adv_split_goto_first")
+            spec.assert_eq(opcode_data.reop_size(26), 10, "loop_check_adv_split_next_first")
+            spec.assert_eq(opcode_data.reop_size(27), 6, "set_i32")
+            spec.assert_eq(opcode_data.reop_size(28), 1, "word_boundary")
+            spec.assert_eq(opcode_data.reop_size(29), 1, "not_word_boundary")
+            spec.assert_eq(opcode_data.reop_size(30), 2, "back_reference")
+            spec.assert_eq(opcode_data.reop_size(31), 2, "back_reference_i")
+            spec.assert_eq(opcode_data.reop_size(32), 2, "range8")
+            spec.assert_eq(opcode_data.reop_size(33), 3, "range")
+            spec.assert_eq(opcode_data.reop_size(34), 5, "lookahead")
+            spec.assert_eq(opcode_data.reop_size(35), 5, "negative_lookahead")
+            spec.assert_eq(opcode_data.reop_size(36), 2, "set_char_pos")
+            spec.assert_eq(opcode_data.reop_size(37), 2, "check_advance")
+        }
+    }
+
+    spec.describe(fw, "opcode constants") {
+        spec.it("OP_* values equal the DEF list position") callback {
+            spec.assert_eq(opcodes.OP_invalid, 0, "OP_invalid")
+            spec.assert_eq(opcodes.OP_push_value, 1, "OP_push_value")
+            spec.assert_eq(opcodes.OP_push_const, 2, "OP_push_const")
+            spec.assert_eq(opcodes.OP_fclosure, 3, "OP_fclosure")
+            spec.assert_eq(opcodes.OP_undefined, 4, "OP_undefined")
+            spec.assert_eq(opcodes.OP_this_func, 10, "OP_this_func")
+            spec.assert_eq(opcodes.OP_arguments, 11, "OP_arguments")
+            spec.assert_eq(opcodes.OP_drop, 13, "OP_drop")
+            spec.assert_eq(opcodes.OP_nip, 14, "OP_nip")
+            spec.assert_eq(opcodes.OP_dup, 15, "OP_dup")
+            spec.assert_eq(opcodes.OP_dup2, 17, "OP_dup2")
+            spec.assert_eq(opcodes.OP_insert2, 18, "OP_insert2")
+            spec.assert_eq(opcodes.OP_insert3, 19, "OP_insert3")
+            spec.assert_eq(opcodes.OP_perm3, 20, "OP_perm3")
+            spec.assert_eq(opcodes.OP_perm4, 21, "OP_perm4")
+            spec.assert_eq(opcodes.OP_swap, 22, "OP_swap")
+            spec.assert_eq(opcodes.OP_rot3l, 23, "OP_rot3l")
+            spec.assert_eq(opcodes.OP_return, 28, "OP_return")
+            spec.assert_eq(opcodes.OP_return_undef, 29, "OP_return_undef")
+            spec.assert_eq(opcodes.OP_throw, 30, "OP_throw")
+            spec.assert_eq(opcodes.OP_get_field, 32, "OP_get_field")
+            spec.assert_eq(opcodes.OP_get_field2, 33, "OP_get_field2")
+            spec.assert_eq(opcodes.OP_put_field, 34, "OP_put_field")
+            spec.assert_eq(opcodes.OP_get_array_el, 35, "OP_get_array_el")
+            spec.assert_eq(opcodes.OP_put_array_el, 37, "OP_put_array_el")
+            spec.assert_eq(opcodes.OP_get_length, 38, "OP_get_length")
+            spec.assert_eq(opcodes.OP_get_length2, 39, "OP_get_length2")
+            spec.assert_eq(opcodes.OP_get_loc, 44, "OP_get_loc")
+            spec.assert_eq(opcodes.OP_put_loc, 45, "OP_put_loc")
+            spec.assert_eq(opcodes.OP_get_arg, 46, "OP_get_arg")
+            spec.assert_eq(opcodes.OP_put_arg, 47, "OP_put_arg")
+            spec.assert_eq(opcodes.OP_get_var_ref, 48, "OP_get_var_ref")
+            spec.assert_eq(opcodes.OP_put_var_ref, 49, "OP_put_var_ref")
+            spec.assert_eq(opcodes.OP_get_var_ref_nocheck, 50, "OP_get_var_ref_nocheck")
+            spec.assert_eq(opcodes.OP_put_var_ref_nocheck, 51, "OP_put_var_ref_nocheck")
+            spec.assert_eq(opcodes.OP_if_false, 52, "OP_if_false")
+            spec.assert_eq(opcodes.OP_if_true, 53, "OP_if_true")
+            spec.assert_eq(opcodes.OP_goto, 54, "OP_goto")
+            spec.assert_eq(opcodes.OP_gosub, 56, "OP_gosub")
+            spec.assert_eq(opcodes.OP_ret, 57, "OP_ret")
+            spec.assert_eq(opcodes.OP_delete, 70, "OP_delete")
+            spec.assert_eq(opcodes.OP_push_0, 95, "OP_push_0")
+            spec.assert_eq(opcodes.OP_push_i8, 103, "OP_push_i8")
+            spec.assert_eq(opcodes.OP_push_i16, 104, "OP_push_i16")
+            spec.assert_eq(opcodes.OP_get_loc8, 108, "OP_get_loc8")
+            spec.assert_eq(opcodes.OP_put_loc8, 109, "OP_put_loc8")
+            spec.assert_eq(opcodes.OP_get_loc0, 110, "OP_get_loc0")
+            spec.assert_eq(opcodes.OP_put_loc0, 114, "OP_put_loc0")
+            spec.assert_eq(opcodes.OP_get_arg0, 118, "OP_get_arg0")
+            spec.assert_eq(opcodes.OP_put_arg0, 122, "OP_put_arg0")
+            spec.assert_eq(opcodes.OP_null, 5, "OP_null")
+            spec.assert_eq(opcodes.OP_push_this, 6, "OP_push_this")
+            spec.assert_eq(opcodes.OP_push_false, 7, "OP_push_false")
+            spec.assert_eq(opcodes.OP_object, 9, "OP_object")
+            spec.assert_eq(opcodes.OP_new_target, 12, "OP_new_target")
+            spec.assert_eq(opcodes.OP_regexp, 31, "OP_regexp")
+            spec.assert_eq(opcodes.OP_array_from, 27, "OP_array_from")
+            spec.assert_eq(opcodes.OP_call, 25, "OP_call")
+            spec.assert_eq(opcodes.OP_call_constructor, 24, "OP_call_constructor")
+            spec.assert_eq(opcodes.OP_call_method, 26, "OP_call_method")
+            spec.assert_eq(opcodes.OP_catch, 55, "OP_catch")
+            spec.assert_eq(opcodes.OP_define_field, 40, "OP_define_field")
+            spec.assert_eq(opcodes.OP_define_getter, 41, "OP_define_getter")
+            spec.assert_eq(opcodes.OP_define_setter, 42, "OP_define_setter")
+            spec.assert_eq(opcodes.OP_set_proto, 43, "OP_set_proto")
+            spec.assert_eq(opcodes.OP_for_in_start, 58, "OP_for_in_start")
+            spec.assert_eq(opcodes.OP_for_of_start, 59, "OP_for_of_start")
+            spec.assert_eq(opcodes.OP_for_of_next, 60, "OP_for_of_next")
+            spec.assert_eq(opcodes.OP_get_array_el2, 36, "OP_get_array_el2")
+            spec.assert_eq(opcodes.OP_neg, 61, "OP_neg")
+            spec.assert_eq(opcodes.OP_plus, 62, "OP_plus")
+            spec.assert_eq(opcodes.OP_dec, 63, "OP_dec")
+            spec.assert_eq(opcodes.OP_post_dec, 65, "OP_post_dec")
+            spec.assert_eq(opcodes.OP_not, 67, "OP_not")
+            spec.assert_eq(opcodes.OP_lnot, 68, "OP_lnot")
+            spec.assert_eq(opcodes.OP_typeof, 69, "OP_typeof")
+            spec.assert_eq(opcodes.OP_inc, 64, "OP_inc")
+            spec.assert_eq(opcodes.OP_mul, 71, "OP_mul")
+            spec.assert_eq(opcodes.OP_div, 72, "OP_div")
+            spec.assert_eq(opcodes.OP_mod, 73, "OP_mod")
+            spec.assert_eq(opcodes.OP_add, 74, "OP_add")
+            spec.assert_eq(opcodes.OP_sub, 75, "OP_sub")
+            spec.assert_eq(opcodes.OP_pow, 76, "OP_pow")
+            spec.assert_eq(opcodes.OP_shl, 77, "OP_shl")
+            spec.assert_eq(opcodes.OP_sar, 78, "OP_sar")
+            spec.assert_eq(opcodes.OP_shr, 79, "OP_shr")
+            spec.assert_eq(opcodes.OP_lt, 80, "OP_lt")
+            spec.assert_eq(opcodes.OP_lte, 81, "OP_lte")
+            spec.assert_eq(opcodes.OP_gt, 82, "OP_gt")
+            spec.assert_eq(opcodes.OP_gte, 83, "OP_gte")
+            spec.assert_eq(opcodes.OP_instanceof, 84, "OP_instanceof")
+            spec.assert_eq(opcodes.OP_in, 85, "OP_in")
+            spec.assert_eq(opcodes.OP_eq, 86, "OP_eq")
+            spec.assert_eq(opcodes.OP_neq, 87, "OP_neq")
+            spec.assert_eq(opcodes.OP_strict_eq, 88, "OP_strict_eq")
+            spec.assert_eq(opcodes.OP_strict_neq, 89, "OP_strict_neq")
+            spec.assert_eq(opcodes.OP_and, 90, "OP_and")
+            spec.assert_eq(opcodes.OP_xor, 91, "OP_xor")
+            spec.assert_eq(opcodes.OP_or, 92, "OP_or")
+        }
+        spec.it("REOP_* values equal the REDEF list position") callback {
+            spec.assert_eq(reopcodes.REOP_any, 6, "REOP_any")
+            spec.assert_eq(reopcodes.REOP_back_reference, 30, "REOP_back_reference")
+            spec.assert_eq(reopcodes.REOP_back_reference_i, 31, "REOP_back_reference_i")
+            spec.assert_eq(reopcodes.REOP_char1, 1, "REOP_char1")
+            spec.assert_eq(reopcodes.REOP_char4, 4, "REOP_char4")
+            spec.assert_eq(reopcodes.REOP_check_advance, 37, "REOP_check_advance")
+            spec.assert_eq(reopcodes.REOP_dot, 5, "REOP_dot")
+            spec.assert_eq(reopcodes.REOP_goto, 13, "REOP_goto")
+            spec.assert_eq(reopcodes.REOP_line_end, 11, "REOP_line_end")
+            spec.assert_eq(reopcodes.REOP_line_end_m, 12, "REOP_line_end_m")
+            spec.assert_eq(reopcodes.REOP_line_start, 9, "REOP_line_start")
+            spec.assert_eq(reopcodes.REOP_line_start_m, 10, "REOP_line_start_m")
+            spec.assert_eq(reopcodes.REOP_lookahead, 34, "REOP_lookahead")
+            spec.assert_eq(reopcodes.REOP_lookahead_match, 17, "REOP_lookahead_match")
+            spec.assert_eq(reopcodes.REOP_loop, 22, "REOP_loop")
+            spec.assert_eq(reopcodes.REOP_loop_check_adv_split_goto_first, 25, "REOP_loop_check_adv_split_goto_first")
+            spec.assert_eq(reopcodes.REOP_loop_check_adv_split_next_first, 26, "REOP_loop_check_adv_split_next_first")
+            spec.assert_eq(reopcodes.REOP_loop_split_goto_first, 23, "REOP_loop_split_goto_first")
+            spec.assert_eq(reopcodes.REOP_loop_split_next_first, 24, "REOP_loop_split_next_first")
+            spec.assert_eq(reopcodes.REOP_match, 16, "REOP_match")
+            spec.assert_eq(reopcodes.REOP_not_space, 8, "REOP_not_space")
+            spec.assert_eq(reopcodes.REOP_not_word_boundary, 29, "REOP_not_word_boundary")
+            spec.assert_eq(reopcodes.REOP_range, 33, "REOP_range")
+            spec.assert_eq(reopcodes.REOP_range8, 32, "REOP_range8")
+            spec.assert_eq(reopcodes.REOP_save_end, 20, "REOP_save_end")
+            spec.assert_eq(reopcodes.REOP_save_reset, 21, "REOP_save_reset")
+            spec.assert_eq(reopcodes.REOP_save_start, 19, "REOP_save_start")
+            spec.assert_eq(reopcodes.REOP_set_char_pos, 36, "REOP_set_char_pos")
+            spec.assert_eq(reopcodes.REOP_set_i32, 27, "REOP_set_i32")
+            spec.assert_eq(reopcodes.REOP_space, 7, "REOP_space")
+            spec.assert_eq(reopcodes.REOP_split_goto_first, 14, "REOP_split_goto_first")
+            spec.assert_eq(reopcodes.REOP_split_next_first, 15, "REOP_split_next_first")
+            spec.assert_eq(reopcodes.REOP_word_boundary, 28, "REOP_word_boundary")
+        }
+        spec.it("must-come-after pairs are adjacent (C relies on +1)") callback {
+            spec.assert_eq(opcodes.OP_put_loc, opcodes.OP_get_loc + 1, "put_loc")
+            spec.assert_eq(opcodes.OP_put_arg, opcodes.OP_get_arg + 1, "put_arg")
+            spec.assert_eq(opcodes.OP_put_var_ref, opcodes.OP_get_var_ref + 1, "put_var_ref")
+            spec.assert_eq(opcodes.OP_if_true, opcodes.OP_if_false + 1, "if_true")
+            spec.assert_eq(opcodes.OP_goto, opcodes.OP_if_true + 1, "goto")
+            spec.assert_eq(opcodes.OP_put_loc8, opcodes.OP_get_loc8 + 1, "put_loc8")
+            spec.assert_eq(opcodes.OP_put_loc0, opcodes.OP_get_loc0 + 4, "put_loc0")
+            spec.assert_eq(opcodes.OP_put_arg0, opcodes.OP_get_arg0 + 4, "put_arg0")
+            spec.assert_eq(reopcodes.REOP_not_space, reopcodes.REOP_space + 1, "not_space")
+            spec.assert_eq(reopcodes.REOP_save_end, reopcodes.REOP_save_start + 1, "save_end")
+            spec.assert_eq(reopcodes.REOP_back_reference_i, reopcodes.REOP_back_reference + 1, "backref_i")
+        }
+    }
+
+    return spec.run_summary(fw)
+}

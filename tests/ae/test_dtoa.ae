@@ -1,0 +1,88 @@
+// Unit test for ae/dtoa — u32toa / i32toa decimal rendering, against the
+// C reference in dtoa.c (ebae6ce): u32toa renders an unsigned 32-bit value
+// with no terminator and returns the digit count; i32toa prefixes '-' and
+// renders -(uint32_t)n, so INT_MIN must come out as "-2147483648".
+
+import std.spec
+import ae.dtoa
+import std.mem
+
+extern malloc(n: long) -> ptr
+extern free(p: ptr)
+extern memset(p: ptr, c: int, n: long) -> ptr
+extern strcmp(a: ptr, b: string) -> int
+
+// Render with u32toa into a buffer pre-filled with 'X', check the
+// returned length, the text, and that nothing past len was written.
+check_u32(n: int, want: string, want_len: int) {
+    buf = malloc(16)
+    memset(buf, 88, 16)
+    long len = dtoa.u32toa(buf, n)
+    spec.assert_eq_long(len, want_len, "u32toa len")
+    spec.assert_eq(mem.get_byte(buf, want_len), 88, "u32toa no overrun")
+    mem.set_byte(buf, len, 0)
+    spec.assert_eq(strcmp(buf, want), 0, want)
+    free(buf)
+}
+
+check_i32(n: int, want: string, want_len: int) {
+    buf = malloc(16)
+    memset(buf, 88, 16)
+    long len = dtoa.i32toa(buf, n)
+    spec.assert_eq_long(len, want_len, "i32toa len")
+    spec.assert_eq(mem.get_byte(buf, want_len), 88, "i32toa no overrun")
+    mem.set_byte(buf, len, 0)
+    spec.assert_eq(strcmp(buf, want), 0, want)
+    free(buf)
+}
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "u32toa") {
+        spec.it("zero renders as a single digit") callback {
+            check_u32(0, "0", 1)
+        }
+        spec.it("single and double digit boundaries") callback {
+            check_u32(1, "1", 1)
+            check_u32(9, "9", 1)
+            check_u32(10, "10", 2)
+            check_u32(99, "99", 2)
+            check_u32(100, "100", 3)
+        }
+        spec.it("powers of ten up to 10^9") callback {
+            check_u32(1000000, "1000000", 7)
+            check_u32(999999999, "999999999", 9)
+            check_u32(1000000000, "1000000000", 10)
+        }
+        spec.it("INT_MAX") callback {
+            check_u32(2147483647, "2147483647", 10)
+        }
+        spec.it("bit 31 set is treated as unsigned") callback {
+            // (int)0x80000000 == INT_MIN -> 2147483648 unsigned
+            check_u32(0 - 2147483647 - 1, "2147483648", 10)
+            // -1 -> UINT32_MAX
+            check_u32(0 - 1, "4294967295", 10)
+            check_u32(0 - 2, "4294967294", 10)
+        }
+    }
+
+    spec.describe(fw, "i32toa") {
+        spec.it("non-negative delegates to u32toa") callback {
+            check_i32(0, "0", 1)
+            check_i32(7, "7", 1)
+            check_i32(2147483647, "2147483647", 10)
+        }
+        spec.it("negative values get a leading minus") callback {
+            check_i32(0 - 1, "-1", 2)
+            check_i32(0 - 10, "-10", 3)
+            check_i32(0 - 123456789, "-123456789", 10)
+            check_i32(0 - 2147483647, "-2147483647", 11)
+        }
+        spec.it("INT_MIN renders without overflow") callback {
+            check_i32(0 - 2147483647 - 1, "-2147483648", 11)
+        }
+    }
+
+    return spec.run_summary(fw)
+}

@@ -1,0 +1,248 @@
+// Edge-case unit test for ae/cutils, complementing test_cutils.ae.
+// Expected values follow cutils.c / cutils.h at ebae6ce. Note that the
+// Aether unicode_to_utf8 / unicode_from_utf8 / utf8_get carry the
+// semantics of the C *out-of-line* __unicode_to_utf8 / __unicode_from_utf8
+// / __utf8_get: the ASCII fast path (c < 0x80) lives in the callers, as it
+// did in the C static-inline wrappers. The ASCII cases below pin that down.
+
+import std.spec
+import ae.cutils
+import std.mem
+
+extern malloc(n: long) -> ptr
+extern free(p: ptr)
+extern strcpy(dst: ptr, src: string) -> ptr
+extern strcmp(a: ptr, b: string) -> int
+extern memset(p: ptr, c: int, n: long) -> ptr
+
+// encode cp and compare the bytes against b0..b3 (unused = -1)
+check_enc(cp: int, want_len: int, b0: int, b1: int, b2: int, b3: int) {
+    buf = malloc(8)
+    memset(buf, 0xAA, 8)
+    long n = cutils.unicode_to_utf8(buf, cp)
+    spec.assert_eq_long(n, want_len, "encode len")
+    if want_len > 0 { spec.assert_eq(mem.get_byte(buf, 0), b0, "byte 0") }
+    if want_len > 1 { spec.assert_eq(mem.get_byte(buf, 1), b1, "byte 1") }
+    if want_len > 2 { spec.assert_eq(mem.get_byte(buf, 2), b2, "byte 2") }
+    if want_len > 3 { spec.assert_eq(mem.get_byte(buf, 3), b3, "byte 3") }
+    spec.assert_eq(mem.get_byte(buf, want_len), 0xAA, "no overrun")
+    free(buf)
+}
+
+// decode bytes b0..b3 with max_len, expect result and *plen
+check_dec(b0: int, b1: int, b2: int, b3: int, max_len: long, want: int, want_len: long) {
+    buf = malloc(8)
+    mem.set_byte(buf, 0, b0)
+    mem.set_byte(buf, 1, b1)
+    mem.set_byte(buf, 2, b2)
+    mem.set_byte(buf, 3, b3)
+    slot = malloc(8)
+    mem.set_long(slot, 0, 99)
+    int c = cutils.unicode_from_utf8(buf, max_len, slot)
+    spec.assert_eq(c, want, "decoded value")
+    spec.assert_eq_long(mem.get_long(slot, 0), want_len, "plen")
+    free(slot)
+    free(buf)
+}
+
+check_get(b0: int, b1: int, b2: int, b3: int, want: int, want_len: long) {
+    buf = malloc(8)
+    mem.set_byte(buf, 0, b0)
+    mem.set_byte(buf, 1, b1)
+    mem.set_byte(buf, 2, b2)
+    mem.set_byte(buf, 3, b3)
+    slot = malloc(8)
+    int c = cutils.utf8_get(buf, slot)
+    spec.assert_eq(c, want, "utf8_get value")
+    spec.assert_eq_long(mem.get_long(slot, 0), want_len, "utf8_get len")
+    free(slot)
+    free(buf)
+}
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "unicode_to_utf8 boundaries") {
+        spec.it("2-byte range 0x80..0x7FF") callback {
+            check_enc(0x80, 2, 0xC2, 0x80, 0 - 1, 0 - 1)
+            check_enc(0x7FF, 2, 0xDF, 0xBF, 0 - 1, 0 - 1)
+        }
+        spec.it("3-byte range 0x800..0xFFFF") callback {
+            check_enc(0x800, 3, 0xE0, 0xA0, 0x80, 0 - 1)
+            check_enc(0xFFFF, 3, 0xEF, 0xBF, 0xBF, 0 - 1)
+        }
+        spec.it("surrogates encode as plain 3-byte sequences") callback {
+            check_enc(0xD800, 3, 0xED, 0xA0, 0x80, 0 - 1)
+            check_enc(0xDFFF, 3, 0xED, 0xBF, 0xBF, 0 - 1)
+        }
+        spec.it("4-byte range 0x10000..0x10FFFF") callback {
+            check_enc(0x10000, 4, 0xF0, 0x90, 0x80, 0x80)
+            check_enc(0x10FFFF, 4, 0xF4, 0x8F, 0xBF, 0xBF)
+        }
+        spec.it("encodes up to 21 bits, then returns 0") callback {
+            check_enc(0x1FFFFF, 4, 0xF7, 0xBF, 0xBF, 0xBF)
+            check_enc(0x200000, 0, 0, 0, 0, 0)
+            check_enc(0x7FFFFFFF, 0, 0, 0, 0, 0)
+            // (unsigned)-1 is 0xFFFFFFFF, far above 21 bits
+            check_enc(0 - 1, 0, 0, 0, 0, 0)
+        }
+        spec.it("ASCII is not special-cased (__unicode_to_utf8 semantics)") callback {
+            // c < 0x800 branch: (c >> 6) | 0xC0, (c & 0x3F) | 0x80
+            check_enc(0x41, 2, 0xC1, 0x81, 0 - 1, 0 - 1)
+            check_enc(0, 2, 0xC0, 0x80, 0 - 1, 0 - 1)
+            check_enc(0x7F, 2, 0xC1, 0xBF, 0 - 1, 0 - 1)
+        }
+    }
+
+    spec.describe(fw, "unicode_from_utf8 validation") {
+        spec.it("boundary code points decode") callback {
+            check_dec(0xC2, 0x80, 0, 0, 4, 0x80, 2)
+            check_dec(0xDF, 0xBF, 0, 0, 4, 0x7FF, 2)
+            check_dec(0xE0, 0xA0, 0x80, 0, 4, 0x800, 3)
+            check_dec(0xEF, 0xBF, 0xBF, 0, 4, 0xFFFF, 3)
+            check_dec(0xF0, 0x90, 0x80, 0x80, 4, 0x10000, 4)
+            check_dec(0xF4, 0x8F, 0xBF, 0xBF, 4, 0x10FFFF, 4)
+        }
+        spec.it("surrogates are explicitly accepted") callback {
+            check_dec(0xED, 0xA0, 0x80, 0, 4, 0xD800, 3)
+            check_dec(0xED, 0xBF, 0xBF, 0, 4, 0xDFFF, 3)
+        }
+        spec.it("overlong forms are rejected with the full length") callback {
+            check_dec(0xC0, 0x80, 0, 0, 4, 0 - 1, 2)
+            check_dec(0xC1, 0xBF, 0, 0, 4, 0 - 1, 2)
+            check_dec(0xE0, 0x9F, 0xBF, 0, 4, 0 - 1, 3)
+            check_dec(0xF0, 0x8F, 0xBF, 0xBF, 4, 0 - 1, 4)
+        }
+        spec.it("above U+10FFFF is rejected") callback {
+            check_dec(0xF4, 0x90, 0x80, 0x80, 4, 0 - 1, 4)
+            check_dec(0xF7, 0xBF, 0xBF, 0xBF, 4, 0 - 1, 4)
+        }
+        spec.it("bad lead bytes fail with len 1") callback {
+            check_dec(0x80, 0x80, 0, 0, 4, 0 - 1, 1)
+            check_dec(0xBF, 0x80, 0, 0, 4, 0 - 1, 1)
+            check_dec(0xF8, 0x88, 0x80, 0x80, 4, 0 - 1, 1)
+            check_dec(0xFF, 0, 0, 0, 4, 0 - 1, 1)
+            // ASCII goes through the fast path in callers, not here
+            check_dec(0x41, 0, 0, 0, 4, 0 - 1, 1)
+        }
+        spec.it("bad continuation reports the bytes consumed so far") callback {
+            check_dec(0xC3, 0x41, 0, 0, 4, 0 - 1, 1)
+            check_dec(0xE2, 0x41, 0x80, 0, 4, 0 - 1, 1)
+            check_dec(0xE2, 0x82, 0x41, 0, 4, 0 - 1, 2)
+            check_dec(0xF0, 0x41, 0x80, 0x80, 4, 0 - 1, 1)
+            check_dec(0xF0, 0x9F, 0x41, 0x80, 4, 0 - 1, 2)
+            check_dec(0xF0, 0x9F, 0x98, 0x41, 4, 0 - 1, 3)
+        }
+        spec.it("truncation by max_len") callback {
+            check_dec(0xC3, 0xA9, 0, 0, 1, 0 - 1, 1)
+            check_dec(0xE2, 0x82, 0xAC, 0, 2, 0 - 1, 2)
+            check_dec(0xE2, 0x82, 0xAC, 0, 1, 0 - 1, 1)
+            check_dec(0xF0, 0x9F, 0x98, 0x80, 3, 0 - 1, 3)
+            check_dec(0xF0, 0x9F, 0x98, 0x80, 4, 0x1F600, 4)
+        }
+    }
+
+    spec.describe(fw, "utf8_get (no validation)") {
+        spec.it("bytes below 0xC0 are returned as-is with len 1") callback {
+            check_get(0x41, 0, 0, 0, 0x41, 1)
+            check_get(0x00, 0, 0, 0, 0, 1)
+            check_get(0x7F, 0, 0, 0, 0x7F, 1)
+            check_get(0x80, 0, 0, 0, 0x80, 1)
+            check_get(0xBF, 0, 0, 0, 0xBF, 1)
+        }
+        spec.it("decodes without range checks") callback {
+            check_get(0xC0, 0x80, 0, 0, 0, 2)
+            check_get(0xED, 0xA0, 0x80, 0, 0xD800, 3)
+            check_get(0xF4, 0x8F, 0xBF, 0xBF, 0x10FFFF, 4)
+            check_get(0xF7, 0xBF, 0xBF, 0xBF, 0x1FFFFF, 4)
+        }
+        spec.it("lead bytes 0xF8..0xFF are returned with len 1") callback {
+            check_get(0xF8, 0x80, 0x80, 0x80, 0xF8, 1)
+            check_get(0xFF, 0, 0, 0, 0xFF, 1)
+        }
+    }
+
+    spec.describe(fw, "string helpers edge cases") {
+        spec.it("pstrcpy with buf_size 0 and 1") callback {
+            dst = malloc(4)
+            memset(dst, 0x5A, 4)
+            src = malloc(8)
+            strcpy(src, "abc")
+            cutils.pstrcpy(dst, 0, src)
+            spec.assert_eq(mem.get_byte(dst, 0), 0x5A, "size 0 writes nothing")
+            cutils.pstrcpy(dst, 1, src)
+            spec.assert_eq(mem.get_byte(dst, 0), 0, "size 1 writes only NUL")
+            spec.assert_eq(mem.get_byte(dst, 1), 0x5A, "size 1 no overrun")
+            cutils.pstrcpy(dst, 4, src)
+            spec.assert_eq(strcmp(dst, "abc"), 0, "exact fit")
+            free(src)
+            free(dst)
+        }
+        spec.it("pstrcat appends and truncates") callback {
+            buf = malloc(16)
+            memset(buf, 0x5A, 16)
+            strcpy(buf, "foo")
+            s = malloc(16)
+            strcpy(s, "barbaz")
+            r = cutils.pstrcat(buf, 8, s)
+            spec.assert_eq(strcmp(buf, "foobarb"), 0, "truncated to 7 chars")
+            spec.assert_eq(mem.get_byte(buf, 8), 0x5A, "no overrun")
+            spec.assert_eq_long(mem.ptr_to_long(r), mem.ptr_to_long(buf), "returns buf")
+            strcpy(buf, "ab")
+            strcpy(s, "cd")
+            cutils.pstrcat(buf, 16, s)
+            spec.assert_eq(strcmp(buf, "abcd"), 0, "plain append")
+            free(s)
+            free(buf)
+        }
+        spec.it("pstrcat when buf already fills buf_size is a no-op") callback {
+            buf = malloc(16)
+            strcpy(buf, "abcdef")
+            s = malloc(8)
+            strcpy(s, "XY")
+            cutils.pstrcat(buf, 4, s)            // len 6 >= 4
+            spec.assert_eq(strcmp(buf, "abcdef"), 0, "unchanged")
+            cutils.pstrcat(buf, 7, s)            // len 6 < 7, room for NUL only
+            spec.assert_eq(strcmp(buf, "abcdef"), 0, "still unchanged")
+            free(s)
+            free(buf)
+        }
+        spec.it("strstart sets *ptr past the prefix") callback {
+            s = malloc(16)
+            strcpy(s, "--verbose")
+            pre = malloc(8)
+            strcpy(pre, "--")
+            slot = malloc(8)
+            mem.set_ptr(slot, 0, null)
+            spec.assert_eq(cutils.strstart(s, pre, slot), 1, "matches")
+            spec.assert_eq_long(mem.ptr_to_long(mem.get_ptr(slot, 0)), mem.ptr_to_long(s) + 2, "ptr = str + 2")
+            strcpy(pre, "")
+            spec.assert_eq(cutils.strstart(s, pre, slot), 1, "empty prefix matches")
+            spec.assert_eq_long(mem.ptr_to_long(mem.get_ptr(slot, 0)), mem.ptr_to_long(s), "ptr = str")
+            strcpy(pre, "--verbosely")
+            mem.set_ptr(slot, 0, null)
+            spec.assert_eq(cutils.strstart(s, pre, slot), 0, "longer prefix fails")
+            spec.assert_null(mem.get_ptr(slot, 0), "ptr untouched on failure")
+            free(slot)
+            free(pre)
+            free(s)
+        }
+        spec.it("has_suffix edge cases") callback {
+            s = malloc(16)
+            strcpy(s, "a.js")
+            suf = malloc(16)
+            strcpy(suf, "")
+            spec.assert_eq(cutils.has_suffix(s, suf), 1, "empty suffix")
+            strcpy(suf, "a.js")
+            spec.assert_eq(cutils.has_suffix(s, suf), 1, "whole string")
+            strcpy(suf, "xa.js")
+            spec.assert_eq(cutils.has_suffix(s, suf), 0, "suffix longer than str")
+            strcpy(suf, ".JS")
+            spec.assert_eq(cutils.has_suffix(s, suf), 0, "case-sensitive")
+            free(suf)
+            free(s)
+        }
+    }
+
+    return spec.run_summary(fw)
+}

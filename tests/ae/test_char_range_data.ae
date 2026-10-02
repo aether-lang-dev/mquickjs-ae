@@ -1,0 +1,150 @@
+// Unit test for ae/char_range_data — the \s and \w regexp class tables.
+// Expected values come from the C static tables char_range_s[] and
+// char_range_w[] in mquickjs.c (ebae6ce), which are [lo, hi+1) pairs:
+//   \s: 09-0D 20 A0 1680 2000-200A 2028-2029 202F 205F 3000 FEFF
+//   \w: 0-9 A-Z _ a-z
+
+import std.spec
+import ae.char_range_data
+
+// 1 when cp falls in one of the [lo, hi) pairs of the \s table
+in_s(cp: int) -> int {
+    int i = 0
+    int n = char_range_data.get_char_range_s_count()
+    while i < n {
+        if cp >= char_range_data.crs_val(i) {
+            if cp < char_range_data.crs_val(i + 1) { return 1 }
+        }
+        i = i + 2
+    }
+    return 0
+}
+
+in_w(cp: int) -> int {
+    int i = 0
+    int n = char_range_data.get_char_range_w_count()
+    while i < n {
+        if cp >= char_range_data.crw_val(i) {
+            if cp < char_range_data.crw_val(i + 1) { return 1 }
+        }
+        i = i + 2
+    }
+    return 0
+}
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "char_range_s (\\s)") {
+        spec.it("has 10 pairs (countof == 20)") callback {
+            spec.assert_eq(char_range_data.get_char_range_s_count(), 20, "count")
+        }
+        spec.it("raw pair values match the C table") callback {
+            spec.assert_eq(char_range_data.crs_val(0), 0x0009, "lo tab")
+            spec.assert_eq(char_range_data.crs_val(1), 0x000E, "hi CR+1")
+            spec.assert_eq(char_range_data.crs_val(8), 0x2000, "lo en quad")
+            spec.assert_eq(char_range_data.crs_val(9), 0x200B, "hi hair space+1")
+            spec.assert_eq(char_range_data.crs_val(10), 0x2028, "lo LS")
+            spec.assert_eq(char_range_data.crs_val(11), 0x202A, "hi PS+1")
+            spec.assert_eq(char_range_data.crs_val(18), 0xFEFF, "lo BOM")
+            spec.assert_eq(char_range_data.crs_val(19), 0xFF00, "hi BOM+1")
+        }
+        spec.it("pairs are non-empty and strictly ascending") callback {
+            int ok = 1
+            int i = 0
+            while i < 20 {
+                if char_range_data.crs_val(i) >= char_range_data.crs_val(i + 1) { ok = 0 }
+                if i + 2 < 20 {
+                    if char_range_data.crs_val(i + 1) >= char_range_data.crs_val(i + 2) { ok = 0 }
+                }
+                i = i + 2
+            }
+            spec.assert_eq(ok, 1, "sorted, disjoint, non-adjacent")
+        }
+        spec.it("ASCII whitespace boundaries") callback {
+            spec.assert_eq(in_s(0x08), 0, "BS")
+            spec.assert_eq(in_s(0x09), 1, "TAB")
+            spec.assert_eq(in_s(0x0A), 1, "LF")
+            spec.assert_eq(in_s(0x0B), 1, "VT")
+            spec.assert_eq(in_s(0x0C), 1, "FF")
+            spec.assert_eq(in_s(0x0D), 1, "CR")
+            spec.assert_eq(in_s(0x0E), 0, "SO")
+            spec.assert_eq(in_s(0x1F), 0, "US")
+            spec.assert_eq(in_s(0x20), 1, "space")
+            spec.assert_eq(in_s(0x21), 0, "!")
+            spec.assert_eq(in_s(0x7F), 0, "DEL")
+            spec.assert_eq(in_s(0), 0, "NUL")
+        }
+        spec.it("non-ASCII whitespace boundaries") callback {
+            spec.assert_eq(in_s(0x85), 0, "NEL is not \\s in ES5")
+            spec.assert_eq(in_s(0x9F), 0, "0x9F")
+            spec.assert_eq(in_s(0xA0), 1, "NBSP")
+            spec.assert_eq(in_s(0xA1), 0, "0xA1")
+            spec.assert_eq(in_s(0x167F), 0, "0x167F")
+            spec.assert_eq(in_s(0x1680), 1, "ogham space")
+            spec.assert_eq(in_s(0x1FFF), 0, "0x1FFF")
+            spec.assert_eq(in_s(0x2000), 1, "en quad")
+            spec.assert_eq(in_s(0x200A), 1, "hair space")
+            spec.assert_eq(in_s(0x200B), 0, "ZWSP is not \\s")
+            spec.assert_eq(in_s(0x2027), 0, "0x2027")
+            spec.assert_eq(in_s(0x2028), 1, "LS")
+            spec.assert_eq(in_s(0x2029), 1, "PS")
+            spec.assert_eq(in_s(0x202A), 0, "0x202A")
+            spec.assert_eq(in_s(0x202F), 1, "NNBSP")
+            spec.assert_eq(in_s(0x205F), 1, "MMSP")
+            spec.assert_eq(in_s(0x3000), 1, "ideographic space")
+            spec.assert_eq(in_s(0x3001), 0, "0x3001")
+            spec.assert_eq(in_s(0xFEFE), 0, "0xFEFE")
+            spec.assert_eq(in_s(0xFEFF), 1, "BOM")
+            spec.assert_eq(in_s(0xFF00), 0, "0xFF00")
+            spec.assert_eq(in_s(0xFFFF), 0, "0xFFFF")
+            spec.assert_eq(in_s(0x10000), 0, "0x10000")
+            spec.assert_eq(in_s(0x10FFFF), 0, "0x10FFFF")
+        }
+    }
+
+    spec.describe(fw, "char_range_w (\\w)") {
+        spec.it("has 4 pairs (countof == 8)") callback {
+            spec.assert_eq(char_range_data.get_char_range_w_count(), 8, "count")
+        }
+        spec.it("raw pair values match the C table") callback {
+            spec.assert_eq(char_range_data.crw_val(0), 0x30, "'0'")
+            spec.assert_eq(char_range_data.crw_val(1), 0x3A, "'9'+1")
+            spec.assert_eq(char_range_data.crw_val(2), 0x41, "'A'")
+            spec.assert_eq(char_range_data.crw_val(3), 0x5B, "'Z'+1")
+            spec.assert_eq(char_range_data.crw_val(4), 0x5F, "'_'")
+            spec.assert_eq(char_range_data.crw_val(5), 0x60, "'_'+1")
+            spec.assert_eq(char_range_data.crw_val(6), 0x61, "'a'")
+            spec.assert_eq(char_range_data.crw_val(7), 0x7B, "'z'+1")
+        }
+        spec.it("word-character boundaries") callback {
+            spec.assert_eq(in_w(0x2F), 0, "/")
+            spec.assert_eq(in_w(0x30), 1, "0")
+            spec.assert_eq(in_w(0x39), 1, "9")
+            spec.assert_eq(in_w(0x3A), 0, ":")
+            spec.assert_eq(in_w(0x40), 0, "@")
+            spec.assert_eq(in_w(0x41), 1, "A")
+            spec.assert_eq(in_w(0x5A), 1, "Z")
+            spec.assert_eq(in_w(0x5B), 0, "[")
+            spec.assert_eq(in_w(0x5E), 0, "^")
+            spec.assert_eq(in_w(0x5F), 1, "_")
+            spec.assert_eq(in_w(0x60), 0, "`")
+            spec.assert_eq(in_w(0x61), 1, "a")
+            spec.assert_eq(in_w(0x7A), 1, "z")
+            spec.assert_eq(in_w(0x7B), 0, "{")
+            spec.assert_eq(in_w(0x24), 0, "$ is not \\w")
+            spec.assert_eq(in_w(0x20), 0, "space")
+        }
+        spec.it("nothing beyond ASCII is \\w") callback {
+            spec.assert_eq(in_w(0x7F), 0, "DEL")
+            spec.assert_eq(in_w(0x80), 0, "0x80")
+            spec.assert_eq(in_w(0xE9), 0, "e-acute")
+            spec.assert_eq(in_w(0x17F), 0, "long s")
+            spec.assert_eq(in_w(0x212A), 0, "Kelvin sign")
+            spec.assert_eq(in_w(0xFFFF), 0, "0xFFFF")
+            spec.assert_eq(in_w(0x10FFFF), 0, "0x10FFFF")
+        }
+    }
+
+    return spec.run_summary(fw)
+}

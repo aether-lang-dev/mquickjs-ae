@@ -1,0 +1,222 @@
+// Unit test for ae/rqsort — the index-based heapsort driver (rqsort_idx)
+// ported from mquickjs.c (ebae6ce). The comparator and swap are passed as
+// typed fn-pointer addresses, the way builtins_iter.ae passes
+// js_array_sort_cmp / js_array_sort_swap. Here the opaque pointer is a
+// malloc'd array of 8-byte ints and the callbacks count their calls.
+//
+// opaque layout: [0] cmp count, [8] swap count, [16..] the elements.
+
+import std.spec
+import ae.rqsort
+import std.mem
+
+extern malloc(n: long) -> ptr
+extern free(p: ptr)
+
+const HDR = 16
+
+// int cmp(size_t i1, size_t i2, void *opaque): ascending, -1/0/1
+cmp_asc(i1: long, i2: long, opaque: ptr) -> int {
+    mem.set_long(opaque, 0, mem.get_long(opaque, 0) + 1)
+    long a = mem.get_long(opaque, HDR + i1 * 8)
+    long b = mem.get_long(opaque, HDR + i2 * 8)
+    if a < b { return 0 - 1 }
+    if a > b { return 1 }
+    return 0
+}
+
+// compare on key = v / 100 only, so ties expose the exact permutation
+cmp_key(i1: long, i2: long, opaque: ptr) -> int {
+    mem.set_long(opaque, 0, mem.get_long(opaque, 0) + 1)
+    long a = mem.get_long(opaque, HDR + i1 * 8) / 100
+    long b = mem.get_long(opaque, HDR + i2 * 8) / 100
+    if a < b { return 0 - 1 }
+    if a > b { return 1 }
+    return 0
+}
+
+// descending order: just reverse the comparison
+cmp_desc(i1: long, i2: long, opaque: ptr) -> int {
+    return cmp_asc(i2, i1, opaque)
+}
+
+swap_el(i1: long, i2: long, opaque: ptr) -> int {
+    mem.set_long(opaque, 8, mem.get_long(opaque, 8) + 1)
+    long a = mem.get_long(opaque, HDR + i1 * 8)
+    mem.set_long(opaque, HDR + i1 * 8, mem.get_long(opaque, HDR + i2 * 8))
+    mem.set_long(opaque, HDR + i2 * 8, a)
+    return 0
+}
+
+new_arr(n: long) -> ptr {
+    a = malloc(HDR + (n + 1) * 8)
+    mem.set_long(a, 0, 0)
+    mem.set_long(a, 8, 0)
+    return a
+}
+
+el(a: ptr, i: long) -> long { return mem.get_long(a, HDR + i * 8) }
+set_el(a: ptr, i: long, v: long) { mem.set_long(a, HDR + i * 8, v) }
+
+// 1 when elements [0, n) are non-decreasing
+is_sorted(a: ptr, n: long) -> int {
+    long i = 1
+    while i < n {
+        if el(a, i - 1) > el(a, i) { return 0 }
+        i = i + 1
+    }
+    return 1
+}
+
+sort_asc(a: ptr, n: long) {
+    c = cmp_asc as fn(long, long, ptr) -> int
+    s = swap_el as fn(long, long, ptr) -> int
+    rqsort.rqsort_idx(n, c, s, a)
+}
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "rqsort_idx") {
+        spec.it("nmemb 0 and 1 make no callback calls") callback {
+            a = new_arr(1)
+            set_el(a, 0, 42)
+            sort_asc(a, 0)
+            sort_asc(a, 1)
+            spec.assert_eq_long(mem.get_long(a, 0), 0, "no cmp calls")
+            spec.assert_eq_long(mem.get_long(a, 8), 0, "no swap calls")
+            spec.assert_eq_long(el(a, 0), 42, "untouched")
+            free(a)
+        }
+        spec.it("two elements swap when out of order") callback {
+            a = new_arr(2)
+            set_el(a, 0, 5)
+            set_el(a, 1, 3)
+            sort_asc(a, 2)
+            spec.assert_eq_long(el(a, 0), 3, "a[0]")
+            spec.assert_eq_long(el(a, 1), 5, "a[1]")
+            free(a)
+        }
+        spec.it("sorts a scrambled permutation of 0..19") callback {
+            a = new_arr(20)
+            long i = 0
+            while i < 20 {
+                set_el(a, i, (i * 7 + 3) % 20)      // 7 is coprime to 20
+                i = i + 1
+            }
+            sort_asc(a, 20)
+            i = 0
+            int ok = 1
+            while i < 20 {
+                if el(a, i) != i { ok = 0 }
+                i = i + 1
+            }
+            spec.assert_eq(ok, 1, "0..19 in order")
+            free(a)
+        }
+        spec.it("handles duplicates and negatives") callback {
+            a = new_arr(9)
+            set_el(a, 0, 3)
+            set_el(a, 1, 0 - 1)
+            set_el(a, 2, 3)
+            set_el(a, 3, 0)
+            set_el(a, 4, 0 - 1099511627776 - 1)
+            set_el(a, 5, 1099511627776)
+            set_el(a, 6, 0 - 1)
+            set_el(a, 7, 3)
+            set_el(a, 8, 0)
+            sort_asc(a, 9)
+            spec.assert_eq(is_sorted(a, 9), 1, "non-decreasing")
+            spec.assert_eq_long(el(a, 0), 0 - 1099511627776 - 1, "min first")
+            spec.assert_eq_long(el(a, 8), 1099511627776, "max last")
+            spec.assert_eq_long(el(a, 3), 0, "a[3]")
+            spec.assert_eq_long(el(a, 5), 3, "a[5]")
+            free(a)
+        }
+        spec.it("already-sorted and reverse-sorted input") callback {
+            a = new_arr(16)
+            long i = 0
+            while i < 16 { set_el(a, i, i)  i = i + 1 }
+            sort_asc(a, 16)
+            spec.assert_eq(is_sorted(a, 16), 1, "sorted stays sorted")
+            i = 0
+            while i < 16 { set_el(a, i, 16 - i)  i = i + 1 }
+            sort_asc(a, 16)
+            spec.assert_eq(is_sorted(a, 16), 1, "reverse becomes sorted")
+            spec.assert_eq_long(el(a, 0), 1, "first")
+            spec.assert_eq_long(el(a, 15), 16, "last")
+            free(a)
+        }
+        spec.it("comparator decides the order (descending)") callback {
+            a = new_arr(5)
+            set_el(a, 0, 2)
+            set_el(a, 1, 9)
+            set_el(a, 2, 4)
+            set_el(a, 3, 1)
+            set_el(a, 4, 7)
+            c = cmp_desc as fn(long, long, ptr) -> int
+            s = swap_el as fn(long, long, ptr) -> int
+            rqsort.rqsort_idx(5, c, s, a)
+            spec.assert_eq_long(el(a, 0), 9, "a[0]")
+            spec.assert_eq_long(el(a, 1), 7, "a[1]")
+            spec.assert_eq_long(el(a, 2), 4, "a[2]")
+            spec.assert_eq_long(el(a, 3), 2, "a[3]")
+            spec.assert_eq_long(el(a, 4), 1, "a[4]")
+            free(a)
+        }
+        spec.it("call counts match a replay of the C heapsort") callback {
+            // Expected counts from replaying the C rqsort_idx loop
+            // (ebae6ce mquickjs.c) on the same inputs.
+            a = new_arr(2)
+            set_el(a, 0, 5)
+            set_el(a, 1, 3)
+            sort_asc(a, 2)
+            spec.assert_eq_long(mem.get_long(a, 0), 1, "n=2 cmp")
+            spec.assert_eq_long(mem.get_long(a, 8), 1, "n=2 swap")
+            free(a)
+            b = new_arr(20)
+            long i = 0
+            while i < 20 { set_el(b, i, (i * 7 + 3) % 20)  i = i + 1 }
+            sort_asc(b, 20)
+            spec.assert_eq_long(mem.get_long(b, 0), 117, "n=20 cmp")
+            spec.assert_eq_long(mem.get_long(b, 8), 72, "n=20 swap")
+            free(b)
+        }
+        spec.it("all-equal input still swaps (cmp <= 0 descends)") callback {
+            a = new_arr(4)
+            long i = 0
+            while i < 4 { set_el(a, i, 5)  i = i + 1 }
+            sort_asc(a, 4)
+            spec.assert_eq(is_sorted(a, 4), 1, "still all 5")
+            spec.assert_eq_long(mem.get_long(a, 0), 6, "cmp calls")
+            spec.assert_eq_long(mem.get_long(a, 8), 7, "swap calls")
+            free(a)
+        }
+        spec.it("unstable: ties land in the C heapsort's exact order") callback {
+            // keys 1,1,0,1,0,1,0 tagged 0..6 -> C result 4,6,2,101,103,100,105
+            a = new_arr(7)
+            set_el(a, 0, 100)
+            set_el(a, 1, 101)
+            set_el(a, 2, 2)
+            set_el(a, 3, 103)
+            set_el(a, 4, 4)
+            set_el(a, 5, 105)
+            set_el(a, 6, 6)
+            c = cmp_key as fn(long, long, ptr) -> int
+            s = swap_el as fn(long, long, ptr) -> int
+            rqsort.rqsort_idx(7, c, s, a)
+            spec.assert_eq_long(el(a, 0), 4, "a[0]")
+            spec.assert_eq_long(el(a, 1), 6, "a[1]")
+            spec.assert_eq_long(el(a, 2), 2, "a[2]")
+            spec.assert_eq_long(el(a, 3), 101, "a[3]")
+            spec.assert_eq_long(el(a, 4), 103, "a[4]")
+            spec.assert_eq_long(el(a, 5), 100, "a[5]")
+            spec.assert_eq_long(el(a, 6), 105, "a[6]")
+            spec.assert_eq_long(mem.get_long(a, 0), 21, "cmp calls")
+            spec.assert_eq_long(mem.get_long(a, 8), 17, "swap calls")
+            free(a)
+        }
+    }
+
+    return spec.run_summary(fw)
+}
