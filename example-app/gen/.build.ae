@@ -3,23 +3,24 @@
 // example_stdlib.h, the ROM table for the demo's custom Rectangle
 // class. Published as c_header_dirs for the example program node.
 
-import build
+import bldr
 import c
 import c (sources, include, cflag, emit, aether_source)
 
 aeb(cap) {
-    b = build.start()
-    c.generated_header(b) {
-        cflag("-D_GNU_SOURCE")
-        cflag("-fno-math-errno")
-        cflag("-fno-trapping-math")
-        include("../..")
-        sources("../example_main.c")
-        sources("../../mquickjs_build.c")
-        // host build-tool helpers ported to Aether (bare C symbols)
-        aether_source("../../gen/buildtool/bt_predicates.ae")
-        aether_source("../../gen/buildtool/bt_atomlist.ae")
-        aether_source("../../gen/genengine/module.ae")
-        emit("", "example_stdlib.h")
+    bldr.build() {
+        c.generated_header() {
+            cflag("-D_GNU_SOURCE")
+            cflag("-fno-math-errno")
+            cflag("-fno-trapping-math")
+            include("../..")
+            sources("../example_main.c")
+            sources("../../mquickjs_build.c")
+            // host build-tool helpers ported to Aether (bare C symbols)
+            aether_source("../../gen/buildtool/bt_predicates.ae")
+            aether_source("../../gen/buildtool/bt_atomlist.ae")
+            aether_source("../../gen/genengine/module.ae")
+            emit("", "example_stdlib.h")
+        }
     }
 }

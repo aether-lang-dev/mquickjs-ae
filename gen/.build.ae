@@ -5,25 +5,26 @@
 // Emits into target/<node>/include and publishes that dir as the
 // c_header_dirs artifact so a dependent c.program -I's it.
 
-import build
+import bldr
 import c
 import c (sources, include, cflag, emit, aether_source)
 
 aeb(cap) {
-    b = build.start()
-    c.generated_header(b) {
-        cflag("-D_GNU_SOURCE")
-        cflag("-fno-math-errno")
-        cflag("-fno-trapping-math")
-        include("..")
-        sources("stdlib_main.c")
-        sources("../mquickjs_build.c")
-        // host build-tool helpers ported to Aether (bare C symbols)
-        aether_source("buildtool/bt_predicates.ae")
-        aether_source("buildtool/bt_atomlist.ae")
-        aether_source("genengine/module.ae")
-        // tool -a  > mquickjs_atom.h ; tool  > mqjs_stdlib.h
-        emit("-a", "mquickjs_atom.h")
-        emit("", "mqjs_stdlib.h")
+    bldr.build() {
+        c.generated_header() {
+            cflag("-D_GNU_SOURCE")
+            cflag("-fno-math-errno")
+            cflag("-fno-trapping-math")
+            include("..")
+            sources("stdlib_main.c")
+            sources("../mquickjs_build.c")
+            // host build-tool helpers ported to Aether (bare C symbols)
+            aether_source("buildtool/bt_predicates.ae")
+            aether_source("buildtool/bt_atomlist.ae")
+            aether_source("genengine/module.ae")
+            // tool -a  > mquickjs_atom.h ; tool  > mqjs_stdlib.h
+            emit("-a", "mquickjs_atom.h")
+            emit("", "mqjs_stdlib.h")
+        }
     }
 }

@@ -3,26 +3,27 @@
 // Each run() passes iff the binary exits 0; the JS files self-check
 // and exit(1) on mismatch.
 
-import build
-import build (dep)
+import bldr
+import bldr (dep)
 import c
 import c (run)
 
 aeb(cap) {
-    b = build.start()
-    dep(b, ".build.ae")
-    dep(b, "example-app/.build.ae")
-    c.tests(b) {
-        run(".build.ae", "tests/test_closure.js")
-        run(".build.ae", "tests/test_language.js")
-        run(".build.ae", "tests/test_loop.js")
-        run(".build.ae", "tests/test_builtin.js")
-        // bytecode write then read-back
-        run(".build.ae", "-o test_builtin.bin tests/test_builtin.js")
-        run(".build.ae", "-b test_builtin.bin")
-        // declarative builder DSL: run(){ eval; eval } drains in order
-        run(".build.ae", "--dsl-demo")
-        // embedding check
-        run("example-app/.build.ae", "tests/test_rect.js")
+    bldr.build() {
+        dep(".build.ae")
+        dep("example-app/.build.ae")
+        c.tests() {
+            run(".build.ae", "tests/test_closure.js")
+            run(".build.ae", "tests/test_language.js")
+            run(".build.ae", "tests/test_loop.js")
+            run(".build.ae", "tests/test_builtin.js")
+            // bytecode write then read-back
+            run(".build.ae", "-o test_builtin.bin tests/test_builtin.js")
+            run(".build.ae", "-b test_builtin.bin")
+            // declarative builder DSL: run(){ eval; eval } drains in order
+            run(".build.ae", "--dsl-demo")
+            // embedding check
+            run("example-app/.build.ae", "tests/test_rect.js")
+        }
     }
 }

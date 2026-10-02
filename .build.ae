@@ -1,8 +1,8 @@
 // The mqjs CLI binary. The engine is built from shared Aether sources plus
 // the small remaining C support set; generated headers come from gen/.
 
-import build
-import build (dep)
+import bldr
+import bldr (dep)
 import c
 import c (sources, aether_source, cflag, link_flag, output_file, aether_home)
 import gen.mqjssources
@@ -10,38 +10,39 @@ import std.os
 import std.string
 
 aether_root() -> string {
-    root = os.getenv("AETHER_HOME")
-    if string.length(root) > 0 { return root }
-    root = os.getenv("AETHER")
+    // Not AETHER_HOME: that names the toolchain aeb itself runs on (often an
+    // installed ~/.aether release), while the engine builds against a dev tree.
+    root = os.getenv("MQJS_AETHER_HOME")
     if string.length(root) > 0 { return root }
     return "/home/paul/scm/aether"
 }
 
 aeb(cap) {
-    b = build.start()
-    dep(b, "gen/.build.ae")
-    c.program(b) {
-        cflag("-Os")
-        cflag("-D_GNU_SOURCE")
-        cflag("-fno-math-errno")
-        cflag("-fno-trapping-math")
-        cflag("-I.")
-        aether_home(aether_root())
+    bldr.build() {
+        dep("gen/.build.ae")
+        c.program() {
+            cflag("-Os")
+            cflag("-D_GNU_SOURCE")
+            cflag("-fno-math-errno")
+            cflag("-fno-trapping-math")
+            cflag("-I.")
+            aether_home(aether_root())
 
-        // Engine sources, shared with the embedding example.
-        mqjssources.register_engine_c_sources(".")
-        mqjssources.register_engine_sources("ae")
+            // Engine sources, shared with the embedding example.
+            mqjssources.register_engine_c_sources(".")
+            mqjssources.register_engine_sources("ae")
 
-        // CLI front-end.
-        aether_source("ae/cli_host.ae")
-        aether_source("ae/mqjs_dsl/module.ae")
-        aether_source("ae/readline.ae")
-        sources("mqjs.c")
-        sources("readline_tty.c")
+            // CLI front-end.
+            aether_source("ae/cli_host.ae")
+            aether_source("ae/mqjs_dsl/module.ae")
+            aether_source("ae/readline.ae")
+            sources("mqjs.c")
+            sources("readline_tty.c")
 
-        link_flag("-lpthread")
-        link_flag("-ldl")
-        link_flag("-lm")
-        output_file("mqjs")
+            link_flag("-lpthread")
+            link_flag("-ldl")
+            link_flag("-lm")
+            output_file("mqjs")
+        }
     }
 }
