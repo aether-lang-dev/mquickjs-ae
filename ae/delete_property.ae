@@ -40,7 +40,7 @@ dp_is_rom(ctx: ptr, p: long) -> int {
     return 0
 }
 
-ag(base: long, i: long) -> long { return mem.get_long(mem.long_to_ptr(base + i * 8), 0) }
+ag_(base: long, i: long) -> long { return mem.get_long(mem.long_to_ptr(base + i * 8), 0) }
 as_(base: long, i: long, v: long) { mem.set_long(mem.long_to_ptr(base + i * 8), 0, v) }
 hn_get(pr: long) -> long { return mqtypes.js_prop_hash_next(mem.long_to_ptr(pr)) }
 hn_set(pr: long, hn: long) {
@@ -66,9 +66,9 @@ JS_DeleteProperty(ctx: ptr, this_obj: long, prop: long) -> long {
 
     long arrv = (p as *JSObject).props
     long base = mem.ptr_to_long(jstag.value_to_ptr(arrv)) + consts.VA_ARR
-    int hash_mask = ag(base, 1) >> 1
+    int hash_mask = ag_(base, 1) >> 1
     long h = dp_hash(prop) & hash_mask
-    int idx = ag(base, 2 + h) >> 1            // JS_VALUE_GET_INT
+    int idx = ag_(base, 2 + h) >> 1            // JS_VALUE_GET_INT
     int last_idx = 0 - 1
 
     int searching = 1
@@ -104,7 +104,7 @@ JS_DeleteProperty(ctx: ptr, this_obj: long, prop: long) -> long {
                     as_(base, 2 + h, prhn)
                 }
                 int first_free = get_first_free(jstag.value_to_ptr(arrv))
-                int prop_count = ag(base, 0) >> 1
+                int prop_count = ag_(base, 0) >> 1
                 long pcm1 = prop_count - 1
                 as_(base, 0, dp_short_int(pcm1))
                 // pr->prop_type = NORMAL (clear bits 30-31); key/value reset

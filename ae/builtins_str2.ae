@@ -19,7 +19,7 @@ extern JS_ToInt32Clamp(ctx: ptr, pres: ptr, val: long, min: int, max: int, min_o
 exports (js_sub_string, js_string_slice, js_string_substring)
 
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
@@ -41,10 +41,10 @@ js_string_slice(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     int len = js_string_len(ctx, s)
 
     slot = malloc(8)
-    if JS_ToInt32Clamp(ctx, slot, argv_get(argv, 0), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int start = mem.get_int(slot, 0)
     int end = len
-    long a1 = argv_get(argv, 1)
+    long a1 = argv_get_(argv, 1)
     if jstag.is_undefined(a1) == 0 {
         if JS_ToInt32Clamp(ctx, slot, a1, 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
         end = mem.get_int(slot, 0)
@@ -63,10 +63,10 @@ js_string_substring(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     int len = js_string_len(ctx, s)
 
     slot = malloc(8)
-    if JS_ToInt32Clamp(ctx, slot, argv_get(argv, 0), 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int a = mem.get_int(slot, 0)
     int b = len
-    long a1 = argv_get(argv, 1)
+    long a1 = argv_get_(argv, 1)
     if jstag.is_undefined(a1) == 0 {
         if JS_ToInt32Clamp(ctx, slot, a1, 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
         b = mem.get_int(slot, 0)

@@ -20,16 +20,16 @@ extern JS_GetPropertyUint32(ctx: ptr, obj: long, idx: int) -> long
 exports (js_array_join)
 
 
-ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-gc_push(ctx: ptr, ref: ptr, v: long) {
-    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top(ctx))
-    ctx_set_top(ctx, ref)
+ctx_top_(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
+ctx_set_top_(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
+gc_push_(ctx: ptr, ref: ptr, v: long) {
+    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_(ctx))
+    ctx_set_top_(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
-    ctx_set_top(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
+    ctx_set_top_(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
     return v
 }
 
@@ -69,7 +69,7 @@ js_array_join(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
 
     sep_ref = malloc(16)
-    gc_push(ctx, sep_ref, sep)
+    gc_push_(ctx, sep_ref, sep)
     b = malloc(24)
     strbuf.string_buffer_push(ctx, b, 0)
 
@@ -107,7 +107,7 @@ js_array_join(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
 
     long result = strbuf.string_buffer_pop(ctx, b)
-    gc_pop(ctx, sep_ref)
+    gc_pop_(ctx, sep_ref)
     free(b)
     free(sep_ref)
     if err != 0 { return jstag.JS_EXCEPTION }

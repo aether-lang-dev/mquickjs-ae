@@ -18,7 +18,7 @@ extern string_getcp(ctx: ptr, str: long, utf16_pos: int, is_codepoint: int) -> i
 exports (js_string_indexOf)
 
 
-f_isnan(d: float) -> int {
+f_isnan_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK {
         if (bits & consts.MANT_MASK) != 0 { return 1 }
@@ -53,7 +53,7 @@ js_string_indexOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr, lastIndexOf: in
         if argc > 1 {
             if JS_ToNumber(ctx, slot, mem.get_long(argv, 8)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
             float d = mem.get_float64(slot, 0)
-            if f_isnan(d) == 0 {
+            if f_isnan_(d) == 0 {
                 if d <= 0.0 { pos = 0 }
                 else {
                     int di = d

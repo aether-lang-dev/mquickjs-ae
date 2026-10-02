@@ -261,45 +261,9 @@ static inline void put_be32(uint8_t *d, uint32_t v)
 
 #define UTF8_CHAR_LEN_MAX 4
 
-size_t __unicode_to_utf8(uint8_t *buf, unsigned int c);
-int __unicode_from_utf8(const uint8_t *p, size_t max_len, size_t *plen);
-int __utf8_get(const uint8_t *p, size_t *plen);
 
-/* Note: at most 21 bits are encoded. At most UTF8_CHAR_LEN_MAX bytes
-   are output. */
-static inline size_t unicode_to_utf8(uint8_t *buf, unsigned int c)
-{
-    if (c < 0x80) {
-        buf[0] = c;
-        return 1;
-    } else {
-        return __unicode_to_utf8(buf, c);
-    }
-}
-
-/* return -1 in case of error. Surrogates are accepted. max_len must
-   be >= 1. *plen is set in case of error and always >= 1. */
-static inline int unicode_from_utf8(const uint8_t *buf, size_t max_len, size_t *plen)
-{
-    if (buf[0] < 0x80) {
-        *plen = 1;
-        return buf[0];
-    } else {
-        return __unicode_from_utf8(buf, max_len, plen);
-    }
-}
-
-/* Warning: no error checking is done so the UTF-8 encoding must be
-   validated before. */
-static force_inline int utf8_get(const uint8_t *buf, size_t *plen)
-{
-    if (likely(buf[0] < 0x80)) {
-        *plen = 1;
-        return buf[0];
-    } else {
-        return __utf8_get(buf, plen);
-    }
-}
+/* unicode_to_utf8 / unicode_from_utf8 / utf8_get live in ae/cutils.ae
+   (import ae.cutils); no C code calls them any more. */
 
 static inline int from_hex(int c)
 {

@@ -21,7 +21,7 @@ exports (js_boolean_constructor, js_number_parseInt, js_number_parseFloat)
 
 // constants
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 argv_set(argv: ptr, i: int, v: long) {
@@ -34,18 +34,18 @@ js_boolean_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if (argc & consts.FRAME_CF_CTOR) != 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "Boolean constructor not supported")
     }
-    int b = JS_ToBool(ctx, argv_get(argv, 0))
+    int b = JS_ToBool(ctx, argv_get_(argv, 0))
     return jstag.new_bool(b)
 }
 
 // JSValue js_number_parseInt(ctx, this_val, argc, argv)
 js_number_parseInt(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    s0 = JS_ToString(ctx, argv_get(argv, 0))
+    s0 = JS_ToString(ctx, argv_get_(argv, 0))
     argv_set(argv, 0, s0)
     if jstag.is_exception(s0) != 0 { return jstag.JS_EXCEPTION }
 
     slot = malloc(8)
-    if JS_ToInt32(ctx, slot, argv_get(argv, 1)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32(ctx, slot, argv_get_(argv, 1)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int radix = mem.get_int(slot, 0)
 
     float d = 0.0
@@ -59,7 +59,7 @@ js_number_parseInt(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         free(slot)
         return JS_NewFloat64(ctx, d)
     }
-    int err = js_atod1(ctx, slot, argv_get(argv, 0), radix, consts.JS_ATOD_INT_ONLY)
+    int err = js_atod1(ctx, slot, argv_get_(argv, 0), radix, consts.JS_ATOD_INT_ONLY)
     if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
     d = mem.get_float64(slot, 0)
     free(slot)
@@ -68,12 +68,12 @@ js_number_parseInt(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_number_parseFloat(ctx, this_val, argc, argv)
 js_number_parseFloat(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    s0 = JS_ToString(ctx, argv_get(argv, 0))
+    s0 = JS_ToString(ctx, argv_get_(argv, 0))
     argv_set(argv, 0, s0)
     if jstag.is_exception(s0) != 0 { return jstag.JS_EXCEPTION }
 
     slot = malloc(8)
-    if js_atod1(ctx, slot, argv_get(argv, 0), 10, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if js_atod1(ctx, slot, argv_get_(argv, 0), 10, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     free(slot)
     return JS_NewFloat64(ctx, d)

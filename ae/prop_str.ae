@@ -18,12 +18,12 @@ extern JS_GetProperty(ctx: ptr, obj: long, prop: long) -> long
 exports (JS_GetPropertyStr, JS_SetPropertyStr)
 
 
-gc_push(ctx: ptr, ref: ptr, v: long) {
+gc_push_(ctx: ptr, ref: ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, consts.GCREF_PREV)
     return v
@@ -38,9 +38,9 @@ key_from_str(ctx: ptr, str: ptr) -> long {
 // JSValue JS_GetPropertyStr(JSContext *ctx, JSValue this_obj, const char *str)
 JS_GetPropertyStr(ctx: ptr, this_obj: long, str: ptr) -> long {
     r1 = malloc(16)
-    gc_push(ctx, r1, this_obj)
+    gc_push_(ctx, r1, this_obj)
     long prop = key_from_str(ctx, str)
-    this_obj = gc_pop(ctx, r1)
+    this_obj = gc_pop_(ctx, r1)
     free(r1)
     if jstag.is_exception(prop) != 0 { return prop }
     return JS_GetProperty(ctx, this_obj, prop)
@@ -50,11 +50,11 @@ JS_GetPropertyStr(ctx: ptr, this_obj: long, str: ptr) -> long {
 JS_SetPropertyStr(ctx: ptr, this_obj: long, str: ptr, val: long) -> long {
     r1 = malloc(16)
     r2 = malloc(16)
-    gc_push(ctx, r1, this_obj)
-    gc_push(ctx, r2, val)
+    gc_push_(ctx, r1, this_obj)
+    gc_push_(ctx, r2, val)
     long prop = key_from_str(ctx, str)
-    val = gc_pop(ctx, r2)
-    this_obj = gc_pop(ctx, r1)
+    val = gc_pop_(ctx, r2)
+    this_obj = gc_pop_(ctx, r1)
     free(r2)
     free(r1)
     if jstag.is_exception(prop) != 0 { return prop }

@@ -12,8 +12,8 @@ import ae.opcode_data
 import ae.reopcodes
 import ae.emit
 import ae.getpkg
+import ae.cutils (unicode_to_utf8)
 
-extern __unicode_to_utf8(buf: ptr, c: int) -> long
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 extern js_parse_error_expect_char(s: ptr, c: int)
@@ -53,13 +53,13 @@ re_emit_op(s: ptr, op: int) {
 // void re_emit_char(JSParseState *s, int c)
 re_emit_char(s: ptr, c: int) {
     buf = malloc(8)
-    // unicode_to_utf8: ascii fast path else __unicode_to_utf8
+    // unicode_to_utf8: ascii fast path else unicode_to_utf8
     long n = 1
     if c < 0x80 {
         mem.set_byte(buf, 0, c)
         n = 1
     } else {
-        n = __unicode_to_utf8(buf, c)
+        n = unicode_to_utf8(buf, c)
     }
     re_emit_op(s, reopcodes.REOP_char1 + n - 1)
     long i = 0
@@ -672,7 +672,6 @@ re_range_optimize(s: ptr, range_start: int, invert: int) {
 const REGISTER_COUNT_MAX = 255
 
 // reopcode_info[op].size (1 byte per entry)
-reop_size(op: int) -> int { return opcode_data.reop_size(op) }
 
 // int re_compute_register_count(JSParseState *s, uint8_t *bc_buf, int bc_buf_len)
 re_compute_register_count(s: ptr, bc_buf: ptr, bc_buf_len: int) -> int {
@@ -682,7 +681,7 @@ re_compute_register_count(s: ptr, bc_buf: ptr, bc_buf_len: int) -> int {
     int pos = 0
     while pos < bc_buf_len {
         int opcode = mem.get_byte(mem.long_to_ptr(base + pos), 0) & 0xff
-        int len = reop_size(opcode)
+        int len = opcode_data.reop_size(opcode)
 
         if opcode == reopcodes.REOP_set_i32 || opcode == reopcodes.REOP_set_char_pos {
             mem.set_byte(mem.long_to_ptr(base + pos + 1), 0, stack_size)

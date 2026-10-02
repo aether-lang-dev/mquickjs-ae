@@ -28,16 +28,16 @@ extern JS_PushArg(ctx: ptr, val: long)
 exports (js_function_get_length_name, js_function_toString, js_function_constructor, js_function_get_prototype, js_function_bind, js_function_bound)
 
 
-ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-gc_push(ctx: ptr, ref: ptr, v: long) {
-    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top(ctx))
-    ctx_set_top(ctx, ref)
+ctx_top_(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
+ctx_set_top_(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
+gc_push_(ctx: ptr, ref: ptr, v: long) {
+    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_(ctx))
+    ctx_set_top_(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
-    ctx_set_top(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
+    ctx_set_top_(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
     return v
 }
 
@@ -60,13 +60,13 @@ js_function_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if jstag.is_exception(str) != 0 { return str }
 
     str_ref = malloc(16)
-    gc_push(ctx, str_ref, str)
+    gc_push_(ctx, str_ref, str)
     long val = JS_NewString(ctx, "function ")
-    str = gc_pop(ctx, str_ref)
+    str = gc_pop_(ctx, str_ref)
     str = JS_ConcatString(ctx, val, str)
-    gc_push(ctx, str_ref, str)
+    gc_push_(ctx, str_ref, str)
     val = JS_NewString(ctx, "() {\n    [native code]\n}")
-    str = gc_pop(ctx, str_ref)
+    str = gc_pop_(ctx, str_ref)
     free(str_ref)
     return JS_ConcatString(ctx, str, val)
 }
@@ -129,15 +129,15 @@ js_function_get_prototype(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long
     }
 
     obj_ref = malloc(16)
-    gc_push(ctx, obj_ref, obj)
+    gc_push_(ctx, obj_ref, obj)
     JS_DefinePropertyValue(ctx, mem.get_long(obj_ref, consts.GCREF_VAL), js_get_atom(ctx, consts.JS_ATOM_constructor), mem.get_long(this_val, 0))
     JS_DefinePropertyValue(ctx, mem.get_long(this_val, 0), js_get_atom(ctx, consts.JS_ATOM_prototype), mem.get_long(obj_ref, consts.GCREF_VAL))
-    long result = gc_pop(ctx, obj_ref)
+    long result = gc_pop_(ctx, obj_ref)
     free(obj_ref)
     return result
 }
 
-new_tail_call(val: int) -> long {
+new_tail_call_(val: int) -> long {
     return jstag.make_special(jstag.TAG_EXCEPTION, consts.JS_EX_CALL + val)
 }
 
@@ -164,9 +164,9 @@ js_function_bound(ctx: ptr, this_val: ptr, argc: int, argv: ptr, params: long) -
     long hdr = mem.get_long(arr, 0)
     int size = (hdr >> 4) & 0xfffffff
     params_ref = malloc(16)
-    gc_push(ctx, params_ref, params)
+    gc_push_(ctx, params_ref, params)
     int err = JS_StackCheck(ctx, size + argc)
-    long params2 = gc_pop(ctx, params_ref)
+    long params2 = gc_pop_(ctx, params_ref)
     free(params_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     int argc2 = size - 2 + argc
@@ -185,5 +185,5 @@ js_function_bound(ctx: ptr, this_val: ptr, argc: int, argv: ptr, params: long) -
     }
     JS_PushArg(ctx, mem.get_long(mem.long_to_ptr(tail), 0))         // func (arr[0])
     JS_PushArg(ctx, mem.get_long(mem.long_to_ptr(tail + 8), 0))     // this (arr[1])
-    return new_tail_call(argc2)
+    return new_tail_call_(argc2)
 }

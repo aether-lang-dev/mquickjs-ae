@@ -20,64 +20,64 @@ exports (re_parse_disjunction)
 
 
 
-byte_code_len(s: ptr) -> int { return mem.get_uint32(s, 88) }
-source_byte(s: ptr, pos: int) -> int {
+byte_code_len_(s: ptr) -> int { return mem.get_uint32(s, 88) }
+source_byte_(s: ptr, pos: int) -> int {
     return mem.get_byte((s as *JSParseState).source_buf, pos)
 }
-buf_pos(s: ptr) -> int { return mem.get_uint32(s, 64) }
-set_buf_pos(s: ptr, v: int) { mem.set_uint32(s, 64, v) }
+buf_pos_(s: ptr) -> int { return mem.get_uint32(s, 64) }
+set_buf_pos_(s: ptr, v: int) { mem.set_uint32(s, 64, v) }
 
 // regexp bytecode buffer: byte_code value -> JSByteArray buf (ptr + 8).
-re_buf(s: ptr) -> long {
+re_buf_(s: ptr) -> long {
     arr = jstag.value_to_ptr((s as *JSParseState).byte_code)
     return mem.ptr_to_long(arr) + 8
 }
-re_set_byte(s: ptr, pos: int, v: int) { mem.set_byte(mem.long_to_ptr(re_buf(s) + pos), 0, v) }
-re_put_u32(s: ptr, pos: int, v: int) { mem.set_uint32(mem.long_to_ptr(re_buf(s) + pos), 0, v) }
+re_set_byte_(s: ptr, pos: int, v: int) { mem.set_byte(mem.long_to_ptr(re_buf_(s) + pos), 0, v) }
+re_put_u32_(s: ptr, pos: int, v: int) { mem.set_uint32(mem.long_to_ptr(re_buf_(s) + pos), 0, v) }
 
-push_int(s: ptr, v: int) { stackalloc.js_parse_push_val(s, jstag.new_short_int(v)) }
-pop_int(s: ptr) -> int { return jstag.get_int(stackalloc.js_parse_pop_val(s)) }
+push_int_(s: ptr, v: int) { stackalloc.js_parse_push_val(s, jstag.new_short_int(v)) }
+pop_int_(s: ptr) -> int { return jstag.get_int(stackalloc.js_parse_pop_val(s)) }
 
-enc(cur_state: int, fn: int, param: int) -> int {
+enc_(cur_state: int, fn: int, param: int) -> int {
     return cur_state | (fn << 8) | (param << 16)
 }
 
 // int re_parse_disjunction(JSParseState *s, int state, int dummy_param)
 re_parse_disjunction(s: ptr, st: int, dummy_param: int) -> int {
     if st == consts.PARSE_STATE_INIT {
-        int start = byte_code_len(s)
+        int start = byte_code_len_(s)
         // PARSE_CALL_SAVE1(s, 0, re_parse_alternative, 0, start)
-        push_int(s, start)
-        return enc(0, consts.PARSE_FUNC_re_parse_alternative, 0)
+        push_int_(s, start)
+        return enc_(0, consts.PARSE_FUNC_re_parse_alternative, 0)
     }
 
     if st == 0 {
-        int start = pop_int(s)
+        int start = pop_int_(s)
         return disj_loop(s, start)
     }
 
     // st == 1
-    int pos = pop_int(s)
-    int start = pop_int(s)
+    int pos = pop_int_(s)
+    int start = pop_int_(s)
     // patch the goto
-    int len = byte_code_len(s) - (pos + 4)
-    re_put_u32(s, pos, len)
+    int len = byte_code_len_(s) - (pos + 4)
+    re_put_u32_(s, pos, len)
     return disj_loop(s, start)
 }
 
 disj_loop(s: ptr, start: int) -> int {
-    while source_byte(s, buf_pos(s)) == 124 {   // '|'
-        set_buf_pos(s, buf_pos(s) + 1)
-        int len = byte_code_len(s) - start
+    while source_byte_(s, buf_pos_(s)) == 124 {   // '|'
+        set_buf_pos_(s, buf_pos_(s) + 1)
+        int len = byte_code_len_(s) - start
         // insert a split before the first alternative
         emit.emit_insert(s, start, 5)
-        re_set_byte(s, start, reopcodes.REOP_split_next_first)
-        re_put_u32(s, start + 1, len + 5)
+        re_set_byte_(s, start, reopcodes.REOP_split_next_first)
+        re_put_u32_(s, start + 1, len + 5)
         int pos = re.re_emit_op_u32(s, reopcodes.REOP_goto, 0)
         // PARSE_CALL_SAVE2(s, 1, re_parse_alternative, 0, start, pos)
-        push_int(s, start)
-        push_int(s, pos)
-        return enc(1, consts.PARSE_FUNC_re_parse_alternative, 0)
+        push_int_(s, start)
+        push_int_(s, pos)
+        return enc_(1, consts.PARSE_FUNC_re_parse_alternative, 0)
     }
     return consts.PARSE_STATE_RET
 }

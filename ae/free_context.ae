@@ -14,8 +14,8 @@ extern vm_call_finalizer(fnptr: long, ctx: ptr, opaque: ptr)
 exports (JS_FreeContext)
 
 
-obj_mtag(p: long) -> int { return (mem.get_byte(mem.long_to_ptr(p), 0) >> 1) & 7 }
-obj_class_id(p: long) -> int { return (mem.get_int(mem.long_to_ptr(p), 0) >> 4) & 0xff }
+obj_mtag_(p: long) -> int { return (mem.get_byte(mem.long_to_ptr(p), 0) >> 1) & 7 }
+obj_class_id_(p: long) -> int { return (mem.get_int(mem.long_to_ptr(p), 0) >> 4) & 0xff }
 
 // void JS_FreeContext(JSContext *ctx)
 JS_FreeContext(ctx: ptr) {
@@ -24,8 +24,8 @@ JS_FreeContext(ctx: ptr) {
     long ftab = mem.ptr_to_long((ctx as *JSContext).c_finalizer_table)
     while hp < heap_free {
         int size = gc.get_mblock_size(mem.long_to_ptr(hp))
-        if obj_mtag(hp) == consts.MTAG_OBJECT {
-            int cid = obj_class_id(hp)
+        if obj_mtag_(hp) == consts.MTAG_OBJECT {
+            int cid = obj_class_id_(hp)
             if cid >= consts.JS_CLASS_USER {
                 long fn = mem.get_long(mem.long_to_ptr(ftab + (cid - consts.JS_CLASS_USER) * 8), 0)
                 if fn != 0 {

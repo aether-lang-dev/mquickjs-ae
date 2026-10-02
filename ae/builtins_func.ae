@@ -20,12 +20,12 @@ extern js_regexp_exec(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int)
 exports (js_function_call, js_function_set_prototype, js_date_valueOf, js_function_apply, js_string_search)
 
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
 // JS_NewTailCall(val) = make_special(jstag.TAG_EXCEPTION, consts.JS_EX_CALL + val)
-new_tail_call(val: int) -> long {
+new_tail_call_(val: int) -> long {
     return jstag.make_special(jstag.TAG_EXCEPTION, consts.JS_EX_CALL + val)
 }
 
@@ -36,12 +36,12 @@ js_function_call(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if JS_StackCheck(ctx, a + 1) != 0 { return jstag.JS_EXCEPTION }
     int i = 0
     while i < (a - 1) {
-        JS_PushArg(ctx, argv_get(argv, a - 1 - i))
+        JS_PushArg(ctx, argv_get_(argv, a - 1 - i))
         i = i + 1
     }
     JS_PushArg(ctx, mem.get_long(this_val, 0))
-    JS_PushArg(ctx, argv_get(argv, 0))
-    return new_tail_call(a - 1)
+    JS_PushArg(ctx, argv_get_(argv, 0))
+    return new_tail_call_(a - 1)
 }
 
 // JSValue js_function_set_prototype(ctx, this_val, argc, argv)
@@ -50,7 +50,7 @@ js_function_set_prototype(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long
     if JS_IsFunctionObject(ctx, tv) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a function")
     }
-    JS_DefinePropertyValue(ctx, tv, js_get_atom(ctx, consts.JS_ATOM_prototype), argv_get(argv, 0))
+    JS_DefinePropertyValue(ctx, tv, js_get_atom(ctx, consts.JS_ATOM_prototype), argv_get_(argv, 0))
     return jstag.JS_UNDEFINED
 }
 
@@ -68,14 +68,14 @@ js_date_valueOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_function_apply(ctx, this_val, argc, argv)
 js_function_apply(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    p = js_get_object_class(ctx, argv_get(argv, 1), consts.JS_CLASS_ARRAY)
+    p = js_get_object_class(ctx, argv_get_(argv, 1), consts.JS_CLASS_ARRAY)
     if p == null { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not an array") }
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     int len = mem.get_uint32(mem.long_to_ptr(u), 8)
     if len > consts.JS_MAX_ARGC { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "too many call arguments") }
     if JS_StackCheck(ctx, len + 2) != 0 { return jstag.JS_EXCEPTION }
     // re-fetch
-    p = jstag.value_to_ptr(argv_get(argv, 1))
+    p = jstag.value_to_ptr(argv_get_(argv, 1))
     u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     arr = jstag.value_to_ptr(mem.get_long(mem.long_to_ptr(u), 0))
     long tail = mem.ptr_to_long(arr) + 8
@@ -85,8 +85,8 @@ js_function_apply(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         i = i + 1
     }
     JS_PushArg(ctx, mem.get_long(this_val, 0))
-    JS_PushArg(ctx, argv_get(argv, 0))
-    return new_tail_call(len)
+    JS_PushArg(ctx, argv_get_(argv, 0))
+    return new_tail_call_(len)
 }
 
 // JSValue js_string_search(ctx, this_val, argc, argv)

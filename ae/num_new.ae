@@ -20,7 +20,7 @@ const F_2_POW_M127_BITS = 0x3800000000000000
 const F_2_POW_128_BITS = 0x47f0000000000000
 
 // JS_NewShortInt(val) = JS_TAG_INT + (val<<1) = val<<1 (jstag.TAG_INT==0)
-new_short_int(val: long) -> long { return val << 1 }
+new_short_int_(val: long) -> long { return val << 1 }
 
 // JSValue js_alloc_float64(JSContext *ctx, double d)
 js_alloc_float64(ctx: ptr, d: float) -> long {
@@ -50,7 +50,7 @@ JS_NewFloat64(ctx: ptr, d: float) -> long {
         float vd = val
         // -0 has no integer form: compare bit patterns to reject it.
         if mem.bits_of_float(d) == mem.bits_of_float(vd) {
-            return new_short_int(val)
+            return new_short_int_(val)
         }
     }
     return new_float64_slow(ctx, d)
@@ -59,7 +59,7 @@ JS_NewFloat64(ctx: ptr, d: float) -> long {
 // JSValue JS_NewInt64(JSContext *ctx, int64_t val)
 JS_NewInt64(ctx: ptr, val: long) -> long {
     if val >= consts.JS_SHORTINT_MIN && val <= consts.JS_SHORTINT_MAX {
-        return new_short_int(val)
+        return new_short_int_(val)
     }
     float d = val
     return new_float64_slow(ctx, d)

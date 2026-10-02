@@ -8,8 +8,8 @@ import std.mem
 import ae.mqtypes
 import ae.jstag
 import ae.consts
+import ae.cutils (unicode_to_utf8)
 
-extern __unicode_to_utf8(buf: ptr, c: int) -> long
 
 exports (get_first_free, set_free_block, get_short_string)
 
@@ -49,7 +49,7 @@ get_short_string(buf: ptr, val: long) -> int {
         mem.set_byte(buf, 0, cp)
         len = 1
     } else {
-        len = __unicode_to_utf8(buf, cp)
+        len = unicode_to_utf8(buf, cp)
     }
     mem.set_byte(buf, len, 0)
     return len

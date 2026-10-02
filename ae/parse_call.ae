@@ -39,6 +39,9 @@ dispatch(func_idx: int, s: ptr, st: int, param: int) -> int {
 }
 
 // void js_parse_call(JSParseState *s, ParseExprFuncEnum func_idx, int param)
+// @c_callback keeps the bare C symbol: ae.pexpr (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_js_parse_call.
+@c_callback
 js_parse_call(s: ptr, func_idx: int, param: int) {
     ctx = (s as *JSParseState).ctx
     long stack_top = mem.ptr_to_long((ctx as *JSContext).sp)

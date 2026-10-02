@@ -52,7 +52,7 @@ sp_at(ctx: ptr, i: int) -> long {
     long sp = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_SP))
     return mem.get_long(mem.long_to_ptr(sp + i * 8), 0)
 }
-sp_set(ctx: ptr, i: int, v: long) {
+sp_set_(ctx: ptr, i: int, v: long) {
     long sp = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_SP))
     mem.set_long(mem.long_to_ptr(sp + i * 8), 0, v)
 }
@@ -88,7 +88,7 @@ js_post_inc_slow(ctx: ptr, op: int) -> long {
     float r = d + (2 * (op - opcodes.OP_post_dec) - 1)
     long val = JS_NewFloat64(ctx, d)
     if jstag.is_exception(val) != 0 { return val }
-    sp_set(ctx, 0, val)
+    sp_set_(ctx, 0, val)
     return JS_NewFloat64(ctx, r)
 }
 
@@ -105,14 +105,14 @@ js_binary_logic_slow(ctx: ptr, op: int) -> long {
     int sh = v2 & 0x1f
     if op == opcodes.OP_shl { return JS_NewInt32(ctx, v1 << sh) }
     if op == opcodes.OP_sar { return JS_NewInt32(ctx, v1 >> sh) }
-    if op == opcodes.OP_shr { return JS_NewUint32(ctx, lshr32(v1, sh)) }
+    if op == opcodes.OP_shr { return JS_NewUint32(ctx, lshr32_(v1, sh)) }
     if op == opcodes.OP_and { return JS_NewInt32(ctx, v1 & v2) }
     if op == opcodes.OP_or { return JS_NewInt32(ctx, v1 | v2) }
     return JS_NewInt32(ctx, v1 ^ v2)   // opcodes.OP_xor
 }
 
 // logical (unsigned) 32-bit right shift
-lshr32(v: int, k: int) -> int {
+lshr32_(v: int, k: int) -> int {
     long u = v & 0xffffffff
     return (u >> k) & 0xffffffff
 }
@@ -134,10 +134,10 @@ lshr32(v: int, k: int) -> int {
 js_add_slow(ctx: ptr) -> long {
     long o1 = JS_ToPrimitive(ctx, sp_at(ctx, 1), consts.HINT_NONE)
     if jstag.is_exception(o1) != 0 { return jstag.JS_EXCEPTION }
-    sp_set(ctx, 1, o1)
+    sp_set_(ctx, 1, o1)
     long o2 = JS_ToPrimitive(ctx, sp_at(ctx, 0), consts.HINT_NONE)
     if jstag.is_exception(o2) != 0 { return jstag.JS_EXCEPTION }
-    sp_set(ctx, 0, o2)
+    sp_set_(ctx, 0, o2)
     int s1 = JS_IsString(ctx, o1)
     int s2 = JS_IsString(ctx, o2)
     if s1 != 0 { return add_concat(ctx, o1, o2) }
@@ -206,10 +206,10 @@ cmp_op(op: int, c: int) -> int {
 js_relational_slow(ctx: ptr, op: int) -> long {
     long o1 = JS_ToPrimitive(ctx, sp_at(ctx, 1), consts.HINT_NUMBER)
     if jstag.is_exception(o1) != 0 { return jstag.JS_EXCEPTION }
-    sp_set(ctx, 1, o1)
+    sp_set_(ctx, 1, o1)
     long o2 = JS_ToPrimitive(ctx, sp_at(ctx, 0), consts.HINT_NUMBER)
     if jstag.is_exception(o2) != 0 { return jstag.JS_EXCEPTION }
-    sp_set(ctx, 0, o2)
+    sp_set_(ctx, 0, o2)
 
     int res = 0
     if JS_IsString(ctx, o1) != 0 { if JS_IsString(ctx, o2) != 0 {
@@ -339,9 +339,9 @@ js_eq_slow(ctx: ptr, is_neq: int) -> long {
             if d1 == d2 { res = 1 }
             done = 1
         } else if t1 == JS_TAG_BOOL {
-            sp_set(ctx, 1, jstag.new_short_int(op1 >> 5))   // GET_SPECIAL_VALUE
+            sp_set_(ctx, 1, jstag.new_short_int(op1 >> 5))   // GET_SPECIAL_VALUE
         } else if t2 == JS_TAG_BOOL {
-            sp_set(ctx, 0, jstag.new_short_int(op2 >> 5))
+            sp_set_(ctx, 0, jstag.new_short_int(op2 >> 5))
         } else if t1 == consts.JS_ETAG_OBJECT {
             if t2 == consts.JS_ETAG_NUMBER { res = obj_to_prim(ctx, 1, op1) }
             else if t2 == consts.JS_ETAG_STRING { res = obj_to_prim(ctx, 1, op1) }
@@ -361,7 +361,7 @@ js_eq_slow(ctx: ptr, is_neq: int) -> long {
 
 // coerce sp[i] to a primitive in place; returns 0 (caller re-loops).
 obj_to_prim(ctx: ptr, i: int, v: long) -> int {
-    sp_set(ctx, i, JS_ToPrimitive(ctx, v, consts.HINT_NONE))
+    sp_set_(ctx, i, JS_ToPrimitive(ctx, v, consts.HINT_NONE))
     return 0
 }
 exc_pending(ctx: ptr, i: int) -> int {

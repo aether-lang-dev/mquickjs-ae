@@ -1,5 +1,5 @@
 // Interrupt poll + function-variable lookup ported from mquickjs.c.
-// __js_poll_interrupt resets the interrupt counter and runs the user
+// js_poll_interrupt resets the interrupt counter and runs the user
 // interrupt handler (via a C trampoline), raising an uncatchable error
 // if it requests interruption; find_func_var scans a function's vars
 // array for a name. Provides the bare C symbols; C bodies removed.
@@ -11,7 +11,7 @@ import ae.consts
 
 extern JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long
 
-exports (__js_poll_interrupt, find_func_var, vm_call_interrupt)
+exports (js_poll_interrupt, find_func_var, vm_call_interrupt)
 
 // Call the C interrupt handler held as a raw pointer.
 // int(*)(JSContext *, void *)
@@ -21,8 +21,8 @@ vm_call_interrupt(fnptr: long, ctx: ptr, opaque: ptr) -> int {
 }
 
 
-// JSValue __js_poll_interrupt(JSContext *ctx)
-__js_poll_interrupt(ctx: ptr) -> long {
+// JSValue js_poll_interrupt(JSContext *ctx)
+js_poll_interrupt(ctx: ptr) -> long {
     mem.set_int16(ctx, consts.JSCTX_INTERRUPT_COUNTER, consts.JS_INTERRUPT_COUNTER_INIT)
     long h = mem.ptr_to_long((ctx as *JSContext).interrupt_handler)
     if h != 0 {
@@ -37,11 +37,11 @@ __js_poll_interrupt(ctx: ptr) -> long {
 }
 
 // JSValueArray: vars @ JSFunctionBytecode+32 (a JSValue); arr[] @8; size = hdr>>4
-va_get(arrval: long, i: int) -> long {
+va_get_(arrval: long, i: int) -> long {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
     return mem.get_long(mem.long_to_ptr(p + 8 + i * 8), 0)
 }
-va_size(arrval: long) -> int {
+va_size_(arrval: long) -> int {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
     return mem.get_long(mem.long_to_ptr(p), 0) >> 4
 }
@@ -51,10 +51,10 @@ find_func_var(ctx: ptr, fobj: long, name: long) -> int {
     b = jstag.value_to_ptr(fobj)
     long vars = mem.get_long(b, 32)   // JSFunctionBytecode.vars
     if vars == jstag.JS_NULL { return 0 - 1 }
-    int n = va_size(vars)
+    int n = va_size_(vars)
     int i = 0
     while i < n {
-        if va_get(vars, i) == name { return i }
+        if va_get_(vars, i) == name { return i }
         i = i + 1
     }
     return 0 - 1

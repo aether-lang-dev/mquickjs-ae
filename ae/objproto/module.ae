@@ -31,7 +31,7 @@ JS_NewObjectProtoClass1(ctx: ptr, proto: long, class_id: int, extra_size: int) -
 
     // GC-root proto across js_malloc (emulate JS_PUSH_VALUE with a
     // scratch JSGCRef {val@0, prev@8})
-    refbuf = malloc16()
+    refbuf = malloc16_()
     mem.set_long(refbuf, 0, proto)
     mem.set_ptr(refbuf, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, refbuf)
@@ -40,7 +40,7 @@ JS_NewObjectProtoClass1(ctx: ptr, proto: long, class_id: int, extra_size: int) -
 
     proto = mem.get_long(refbuf, 0)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(refbuf, 8))
-    free16(refbuf)
+    free16_(refbuf)
 
     if p == null { return null }
 
@@ -56,8 +56,8 @@ JS_NewObjectProtoClass1(ctx: ptr, proto: long, class_id: int, extra_size: int) -
     return p
 }
 
-malloc16() -> ptr { return malloc(16) }
-free16(p: ptr) { free(p) }
+malloc16_() -> ptr { return malloc(16) }
+free16_(p: ptr) { free(p) }
 
 // ===== from new_c_function_proto.ae =====
 // js_new_c_function_proto ported from mquickjs.c: build a C-function

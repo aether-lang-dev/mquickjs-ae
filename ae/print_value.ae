@@ -10,6 +10,7 @@ import ae.jstag
 import ae.mqtypes
 import ae.consts
 import ae.getpkg
+import ae.cutils (utf8_get)
 
 extern js_printf(ctx: ptr, fmt: ptr, ...) -> int
 extern js_putchar(ctx: ptr, c: int)
@@ -24,7 +25,6 @@ extern JS_IsString(ctx: ptr, val: long) -> int
 extern get_special_prop(ctx: ptr, val: long) -> long
 extern js_regexp_flags_str(buf: ptr, re_flags: int) -> long
 extern lre_get_flags(buf: ptr) -> int
-extern __utf8_get(p: ptr, plen: ptr) -> int
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 
@@ -50,15 +50,15 @@ pv_varref_detached(p: ptr) -> int { return (mem.get_long(p, 0) >> 4) & 1 }
 pv_va_size(arr: ptr) -> int { return mem.get_long(arr, 0) >> 4 }
 pv_prop_type(pr: ptr) -> int { return mqtypes.js_prop_type(pr) }
 
-is_ident_first(c: int) -> int {
+is_ident_first_(c: int) -> int {
     if c >= 97 && c <= 122 { return 1 }   // a-z
     if c >= 65 && c <= 90 { return 1 }    // A-Z
     if c == 95 { return 1 }               // _
     if c == 36 { return 1 }               // $
     return 0
 }
-is_ident_next(c: int) -> int {
-    if is_ident_first(c) != 0 { return 1 }
+is_ident_next_(c: int) -> int {
+    if is_ident_first_(c) != 0 { return 1 }
     if c >= 48 && c <= 57 { return 1 }
     return 0
 }
@@ -98,11 +98,11 @@ dump_string(ctx: ptr, sep: int, buf: ptr, len: long, flags: int) {
     long b = mem.ptr_to_long(buf)
     if (flags & consts.JS_DUMP_NOQUOTE) != 0 {
         if len >= 1 {
-            if is_ident_first(mem.get_byte(mem.long_to_ptr(b), 0) & 0xff) != 0 {
+            if is_ident_first_(mem.get_byte(mem.long_to_ptr(b), 0) & 0xff) != 0 {
                 int all_ident = 1
                 long i = 1
                 while i < len {
-                    if is_ident_next(mem.get_byte(mem.long_to_ptr(b + i), 0) & 0xff) == 0 { all_ident = 0  i = len }
+                    if is_ident_next_(mem.get_byte(mem.long_to_ptr(b + i), 0) & 0xff) == 0 { all_ident = 0  i = len }
                     else { i = i + 1 }
                 }
                 if all_ident != 0 { use_quote = 0 }
@@ -117,7 +117,7 @@ dump_string(ctx: ptr, sep: int, buf: ptr, len: long, flags: int) {
     long pend = b + len
     plen = malloc(8)
     while p < pend {
-        int c = __utf8_get(mem.long_to_ptr(p), plen)
+        int c = utf8_get(mem.long_to_ptr(p), plen)
         long clen = mem.get_long(plen, 0)
         int esc = 0
         int ec = c

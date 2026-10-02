@@ -12,6 +12,7 @@ import ae.strbuf
 import ae.getpkg
 import ae.numstr
 import ae.ops
+import ae.cutils (utf8_get)
 
 extern get_short_string(buf: ptr, val: long) -> int
 
@@ -42,7 +43,6 @@ extern JS_ToNumber(ctx: ptr, pres: ptr, val: long) -> int
 extern js_lrint(a: float) -> int
 
 extern js_emit_u_escape(ctx: ptr, b: ptr, c: int)
-extern __utf8_get(p: ptr, plen: ptr) -> int
 
 extern JS_MakeUniqueString(ctx: ptr, val: long) -> long
 
@@ -479,7 +479,7 @@ tqs_str_len(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
 tqs_utf8_get(base: long, plen: ptr) -> int {
     int b0 = mem.get_byte(mem.long_to_ptr(base), 0) & 0xff
     if b0 < 0x80 { mem.set_long(plen, 0, 1)  return b0 }
-    return __utf8_get(mem.long_to_ptr(base), plen)
+    return utf8_get(mem.long_to_ptr(base), plen)
 }
 
 // int to_quoted_string(JSContext *ctx, StringBuffer *b, JSValue str)

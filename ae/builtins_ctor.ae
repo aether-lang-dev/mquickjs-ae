@@ -17,13 +17,13 @@ extern JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long
 exports (js_object_create, js_string_set_length, js_number_constructor)
 
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
 // JSValue js_object_create(ctx, this_val, argc, argv)
 js_object_create(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    long proto = argv_get(argv, 0)
+    long proto = argv_get_(argv, 0)
     if proto != jstag.JS_NULL {
         if JS_IsObject(ctx, proto) == 0 {
             return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a prototype")
@@ -49,7 +49,7 @@ js_number_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         return jstag.new_short_int(0)
     }
     slot = malloc(8)
-    if JS_ToNumber(ctx, slot, argv_get(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, slot, argv_get_(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     free(slot)
     return JS_NewFloat64(ctx, d)

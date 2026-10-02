@@ -7,6 +7,7 @@
 // (the upstream variadic term_printf cannot be called across the ABI).
 
 import std.mem
+import ae.cutils (unicode_to_utf8, utf8_get)
 
 const IS_NORM = 0
 const IS_ESC = 1
@@ -20,8 +21,6 @@ const READLINE_RET_ACCEPTED = 2
 const UTF8_CHAR_LEN_MAX = 4
 const COLOR_NONE = 0
 
-extern __utf8_get(buf: ptr, plen: ptr) -> int
-extern __unicode_to_utf8(buf: ptr, c: int) -> long
 extern term_put_str(s: ptr)
 extern term_put_buf(s: ptr, len: int)
 extern term_put_char(c: int)
@@ -71,7 +70,7 @@ exports (
     READLINE_RET_ACCEPTED,
 )
 
-// utf8_get(p, &len): ASCII fast path inline, else __utf8_get. Returns the
+// utf8_get(p, &len): ASCII fast path inline, else utf8_get. Returns the
 // codepoint and writes the byte length into the caller's malloc'd slot.
 utf8_get_len(base: long, slot: ptr) -> int {
     p = mem.long_to_ptr(base)
@@ -80,7 +79,7 @@ utf8_get_len(base: long, slot: ptr) -> int {
         mem.set_long(slot, 0, 1)
         return c
     }
-    return __utf8_get(p, slot)
+    return utf8_get(p, slot)
 }
 
 char_width(c: int) -> int {
@@ -175,13 +174,13 @@ term_insert_region(s: ptr, data: ptr, len: int) {
 
 term_insert_char(s: ptr, ch: int) {
     buf = malloc(UTF8_CHAR_LEN_MAX + 1)
-    // unicode_to_utf8: ASCII fast path inline, else __unicode_to_utf8.
+    // unicode_to_utf8: ASCII fast path inline, else unicode_to_utf8.
     int len = 0
     if ch < 0x80 {
         mem.set_byte(buf, 0, ch)
         len = 1
     } else {
-        len = __unicode_to_utf8(buf, ch)
+        len = unicode_to_utf8(buf, ch)
     }
     term_insert_region(s, buf, len)
     free(buf)

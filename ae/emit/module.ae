@@ -45,7 +45,7 @@ const OP_FMT_none = 0
 const OP_FMT_npop = 13
 
 // byte_code buffer base (JSByteArray.buf @ offset 8 from the array ptr)
-bc_buf(s: ptr) -> long {
+bc_buf_(s: ptr) -> long {
     long bc = (s as *JSParseState).byte_code
     arr = jstag.value_to_ptr(bc)
     return mem.ptr_to_long(arr) + 8
@@ -66,7 +66,7 @@ emit_claim_size(s: ptr, n: int) {
 emit_u8(s: ptr, val: int) {
     emit_claim_size(s, 1)
     long pos = (s as *JSParseState).byte_code_len
-    long base = bc_buf(s)
+    long base = bc_buf_(s)
     mem.set_byte(mem.long_to_ptr(base), pos, val)
     (s as *JSParseState).byte_code_len = pos + 1
 }
@@ -75,7 +75,7 @@ emit_u8(s: ptr, val: int) {
 emit_u16(s: ptr, val: int) {
     emit_claim_size(s, 2)
     long pos = (s as *JSParseState).byte_code_len
-    long base = bc_buf(s)
+    long base = bc_buf_(s)
     mem.set_uint16(mem.long_to_ptr(base + pos), 0, val)
     (s as *JSParseState).byte_code_len = pos + 2
 }
@@ -84,7 +84,7 @@ emit_u16(s: ptr, val: int) {
 emit_u32(s: ptr, val: int) {
     emit_claim_size(s, 4)
     long pos = (s as *JSParseState).byte_code_len
-    long base = bc_buf(s)
+    long base = bc_buf_(s)
     mem.set_uint32(mem.long_to_ptr(base + pos), 0, val)
     (s as *JSParseState).byte_code_len = pos + 4
 }
@@ -171,7 +171,7 @@ remove_last_op(s: ptr) {
 // void emit_insert(JSParseState *s, int pos, int n)
 emit_insert(s: ptr, pos: int, n: int) {
     emit_claim_size(s, n)
-    long base = bc_buf(s)
+    long base = bc_buf_(s)
     int bcl = (s as *JSParseState).byte_code_len
     dst = mem.long_to_ptr(base + pos + n)
     srcp = mem.long_to_ptr(base + pos)
@@ -183,7 +183,7 @@ emit_insert(s: ptr, pos: int, n: int) {
 js_emit_delete(s: ptr) {
     int opcode = get_prev_opcode(s)
     if opcode == opcodes.OP_get_field {
-        long base = bc_buf(s)
+        long base = bc_buf_(s)
         int lop = (s as *JSParseState).last_opcode_pos
         int prop_idx = mem.get_uint16(mem.long_to_ptr(base + lop + 1), 0)
         remove_last_op(s)
@@ -218,7 +218,7 @@ js_emit_push_number(s: ptr, d: float) {
 // void emit_label_pos(JSParseState *s, JSValue *plabel, int pos)
 emit_label_pos(s: ptr, plabel: ptr, pos: int) {
     int label = jstag.get_int(mem.get_long(plabel, 0))
-    long base = bc_buf(s)
+    long base = bc_buf_(s)
     while label != consts.LABEL_OFFSET_MASK {
         int next = mem.get_uint32(mem.long_to_ptr(base + label), 0)
         mem.set_uint32(mem.long_to_ptr(base + label), 0, pos - label)
@@ -250,7 +250,7 @@ emit_goto(s: ptr, opcode: int, plabel: ptr) {
 // ---- control-flow codegen (from emit_ctrl.ae) -----------------------
 
 // VALUE_TO_SP(ctx, val) = ctx + JS_VALUE_GET_INT(val)
-value_to_sp(ctx: ptr, val: long) -> ptr {
+value_to_sp_(ctx: ptr, val: long) -> ptr {
     return mem.long_to_ptr(mem.ptr_to_long(ctx) + jstag.get_int(val))
 }
 
@@ -260,7 +260,7 @@ emit_return(s: ptr, hasval: int, source_pos: int) {
     int drop_count = 0
     long top_val = (s as *JSParseState).top_break
     while jstag.is_null(top_val) == 0 {
-        top = value_to_sp(ctx, top_val)
+        top = value_to_sp_(ctx, top_val)
         drop_count = drop_count + jstag.get_int(mem.get_long(top, consts.BE_DROP_COUNT))
         long label_finally = mem.get_long(top, consts.BE_LABEL_FINALLY)
         if jshelpers.label_is_none(label_finally) == 0 {
@@ -304,7 +304,7 @@ emit_break(s: ptr, label_name: long, is_cont: int) {
     while done == 0 {
         if jstag.is_null(top_val) != 0 { done = 1 }
         else {
-            top = value_to_sp(ctx, top_val)
+            top = value_to_sp_(ctx, top_val)
             long lc = mem.get_long(top, consts.BE_LABEL_CONT)
             long dc = mem.get_long(top, consts.BE_DROP_COUNT)
             int is_labelled = 0

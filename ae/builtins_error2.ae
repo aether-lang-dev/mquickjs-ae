@@ -18,16 +18,16 @@ extern build_backtrace(ctx: ptr, error_obj: long, filename: ptr, line_num: int, 
 exports (js_error_constructor)
 
 
-ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-gc_push(ctx: ptr, ref: ptr, v: long) {
-    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top(ctx))
-    ctx_set_top(ctx, ref)
+ctx_top_(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
+ctx_set_top_(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
+gc_push_(ctx: ptr, ref: ptr, v: long) {
+    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_(ctx))
+    ctx_set_top_(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
-    ctx_set_top(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
+    ctx_set_top_(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
     return v
 }
 
@@ -44,9 +44,9 @@ js_error_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) 
     obj_ref = malloc(16)
     long a0 = mem.get_long(argv, 0)
     if jstag.is_undefined(a0) == 0 {
-        gc_push(ctx, obj_ref, obj)
+        gc_push_(ctx, obj_ref, obj)
         long msg = JS_ToString(ctx, a0)
-        obj = gc_pop(ctx, obj_ref)
+        obj = gc_pop_(ctx, obj_ref)
         if jstag.is_exception(msg) != 0 { free(obj_ref)  return msg }
         p = jstag.value_to_ptr(obj)
         mem.set_long(p, consts.ERR_MESSAGE_OFF, msg)
@@ -54,9 +54,9 @@ js_error_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) 
         p = jstag.value_to_ptr(obj)
         mem.set_long(p, consts.ERR_MESSAGE_OFF, js_get_atom(ctx, consts.JS_ATOM_empty))
     }
-    gc_push(ctx, obj_ref, obj)
+    gc_push_(ctx, obj_ref, obj)
     build_backtrace(ctx, obj, null, 0, 0, 1)
-    obj = gc_pop(ctx, obj_ref)
+    obj = gc_pop_(ctx, obj_ref)
     free(obj_ref)
     return obj
 }

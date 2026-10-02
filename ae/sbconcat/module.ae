@@ -7,12 +7,11 @@ import std.mem
 import ae.getpkg
 import ae.strpos
 import ae.vstore
+import ae.cutils (unicode_to_utf8, utf8_get)
 
 extern JS_IsString(ctx: ptr, val: long) -> int
 extern is_utf8_left_surrogate(p: ptr) -> int
 extern is_utf8_right_surrogate(p: ptr) -> int
-extern __utf8_get(p: ptr, plen: ptr) -> int
-extern __unicode_to_utf8(buf: ptr, c: int) -> long
 extern JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long
 extern memcpy(dst: ptr, src: ptr, n: long) -> ptr
 extern malloc(n: long) -> ptr
@@ -43,7 +42,7 @@ scs_utf8_get(base: long) -> int {
     int b0 = mem.get_byte(mem.long_to_ptr(base), 0)
     if b0 < 0x80 { return b0 }
     cl = malloc(8)
-    int c = __utf8_get(mem.long_to_ptr(base), cl)
+    int c = utf8_get(mem.long_to_ptr(base), cl)
     free(cl)
     return c
 }
@@ -132,7 +131,7 @@ string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
         len = len - 2
         len2 = len2 - 3
         q = q - 3
-        q = q + __unicode_to_utf8(mem.long_to_ptr(q), c)
+        q = q + unicode_to_utf8(mem.long_to_ptr(q), c)
         mem.set_int(s, consts.SB_IS_ASCII, 0)
     }
 

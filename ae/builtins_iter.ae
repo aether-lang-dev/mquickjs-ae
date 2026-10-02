@@ -48,23 +48,23 @@ ctx_set_top_gc_ref(ctx: ptr, v: ptr) {
 }
 
 // JS_PUSH_VALUE(ctx, ref, v): ref.prev = top; top = ref; ref.val = v
-gc_push(ctx: ptr, ref: ptr, v: long) {
+gc_push_(ctx: ptr, ref: ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_gc_ref(ctx))
     ctx_set_top_gc_ref(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
 // JS_POP_VALUE(ctx, ref) -> ref.val ; top = ref.prev
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
     ctx_set_top_gc_ref(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
     return v
 }
 
-array_len_of(p: ptr) -> int {
+array_len_of_(p: ptr) -> int {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_uint32(mem.long_to_ptr(u), 8)
 }
-array_tab_of(p: ptr) -> long {
+array_tab_of_(p: ptr) -> long {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_long(mem.long_to_ptr(u), 0)
 }
@@ -74,7 +74,7 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    int len = array_len_of(p)
+    int len = array_len_of_(p)
 
     long pfunc = mem.get_long(argv, 0)
     long pthis = jstag.JS_UNDEFINED
@@ -98,7 +98,7 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
     int n = 0
     ret_ref = malloc(16)
     val_ref = malloc(16)
-    gc_push(ctx, ret_ref, ret)
+    gc_push_(ctx, ret_ref, ret)
 
     int k = 0
     int err = 0
@@ -107,10 +107,10 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
         else {
             // re-fetch (function calls may resize the array)
             p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-            int cur_len = array_len_of(p)
+            int cur_len = array_len_of_(p)
             if k >= cur_len { k = len }
             else {
-                long tab = array_tab_of(p)
+                long tab = array_tab_of_(p)
                 arr = jstag.value_to_ptr(tab)
                 long val = mem.get_long(arr, 8 + k * 8)
 
@@ -119,9 +119,9 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
                 JS_PushArg(ctx, val)         // arg0
                 JS_PushArg(ctx, pfunc)       // func
                 JS_PushArg(ctx, pthis)       // this
-                gc_push(ctx, val_ref, val)
+                gc_push_(ctx, val_ref, val)
                 long res = JS_Call(ctx, 3)
-                long val2 = gc_pop(ctx, val_ref)
+                long val2 = gc_pop_(ctx, val_ref)
 
                 if jstag.is_exception(res) != 0 {
                     mem.set_long(ret_ref, consts.GCREF_VAL, jstag.JS_EXCEPTION)
@@ -157,7 +157,7 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
         }
     }
 
-    long final_ret = gc_pop(ctx, ret_ref)
+    long final_ret = gc_pop_(ctx, ret_ref)
     free(val_ref)
     free(ret_ref)
     return final_ret
@@ -169,7 +169,7 @@ js_array_reduce(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> 
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    int len = array_len_of(p)
+    int len = array_len_of_(p)
     long pfunc = mem.get_long(argv, 0)
     if JS_IsFunction(ctx, pfunc) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a function")
@@ -185,7 +185,7 @@ js_array_reduce(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> 
         }
         int k1 = k
         if special == SPECIAL_REDUCERIGHT { k1 = len - k - 1 }
-        long tab = array_tab_of(p)
+        long tab = array_tab_of_(p)
         arr = jstag.value_to_ptr(tab)
         acc = mem.get_long(arr, 8 + k1 * 8)
         k = 1
@@ -194,18 +194,18 @@ js_array_reduce(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> 
     acc_ref = malloc(16)
     int err = 0
     while k < len {
-        gc_push(ctx, acc_ref, acc)
+        gc_push_(ctx, acc_ref, acc)
         int rc = JS_StackCheck(ctx, 6)
-        acc = gc_pop(ctx, acc_ref)
+        acc = gc_pop_(ctx, acc_ref)
         if rc != 0 { err = 1  k = len }
         else {
             int k1 = k
             if special == SPECIAL_REDUCERIGHT { k1 = len - k - 1 }
             p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-            int cur_len = array_len_of(p)
+            int cur_len = array_len_of_(p)
             if k1 >= cur_len { k = len }
             else {
-                long tab = array_tab_of(p)
+                long tab = array_tab_of_(p)
                 arr = jstag.value_to_ptr(tab)
                 long el = mem.get_long(arr, 8 + k1 * 8)
                 JS_PushArg(ctx, mem.get_long(this_val, 0))
@@ -243,7 +243,7 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    int len = array_len_of(p)
+    int len = array_len_of_(p)
 
     // temp array of len*2 JSValues (value, index pairs)
     tab = vstore.js_alloc_value_array(ctx, 0, len * 2)
@@ -251,7 +251,7 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
     // re-fetch source
     p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-    arr = jstag.value_to_ptr(array_tab_of(p))
+    arr = jstag.value_to_ptr(array_tab_of_(p))
     long arr_tail = mem.ptr_to_long(arr) + 8
     long tab_tail = mem.ptr_to_long(tab) + 8
     int n = 0
@@ -272,7 +272,7 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     // ref's val (so callbacks see the current tab pointer); pfunc slot
     // holds the comparator (or a slot containing JS_UNDEFINED -> null).
     tab_ref = malloc(16)
-    gc_push(ctx, tab_ref, tab_val)
+    gc_push_(ctx, tab_ref, tab_val)
 
     sctx = malloc(32)
     mem.set_ptr(sctx, 0, ctx)               // ctx
@@ -290,7 +290,7 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     swap_addr = js_array_sort_swap as fn(long, long, ptr) -> int
     rqsort_idx(n, cmp_addr, swap_addr, sctx)
 
-    long tv2 = gc_pop(ctx, tab_ref)
+    long tv2 = gc_pop_(ctx, tab_ref)
     tab = jstag.value_to_ptr(tv2)
     int exc = mem.get_int(sctx, 8)
     free(pfunc_slot)
@@ -303,9 +303,9 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
     // write sorted values back
     p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-    int cur_len = array_len_of(p)
+    int cur_len = array_len_of_(p)
     if cur_len < len { len = cur_len }
-    arr = jstag.value_to_ptr(array_tab_of(p))
+    arr = jstag.value_to_ptr(array_tab_of_(p))
     arr_tail = mem.ptr_to_long(arr) + 8
     tab_tail = mem.ptr_to_long(tab) + 8
     i = 0

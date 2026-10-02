@@ -8,9 +8,9 @@ import ae.jstag
 import ae.mqtypes
 import ae.consts
 import ae.alloc
+import ae.cutils (utf8_get)
 
 extern js_get_atom(ctx: ptr, a: int) -> long
-extern __utf8_get(p: ptr, plen: ptr) -> int
 extern is_ascii_string(buf: ptr, len: long) -> int
 extern memcpy(dst: ptr, src: ptr, n: long) -> ptr
 extern malloc(n: long) -> ptr
@@ -20,7 +20,7 @@ exports (JS_NewStringLen)
 
 
 // utf8_char_len(c): bytes in a sequence whose lead byte is c.
-utf8_char_len(c: int) -> int {
+utf8_char_len_(c: int) -> int {
     if c < 0x80 { return 1 }
     if c < 0xc0 { return 1 }
     if c < 0xe0 { return 2 }
@@ -30,7 +30,7 @@ utf8_char_len(c: int) -> int {
 }
 
 // JS_NewStringChar(c) = JS_VALUE_MAKE_SPECIAL(STRING_CHAR, c) = (c<<5)|27
-new_string_char(c: int) -> long { long cl = c & 0xffffffff  return (cl << 5) | jstag.TAG_STRING_CHAR }
+new_string_char_(c: int) -> long { long cl = c & 0xffffffff  return (cl << 5) | jstag.TAG_STRING_CHAR }
 
 // set JSString.is_ascii (header bit 5).
 set_is_ascii(p: ptr, v: int) {
@@ -43,15 +43,15 @@ set_is_ascii(p: ptr, v: int) {
 JS_NewStringLen(ctx: ptr, buf: ptr, len: long) -> long {
     if len == 0 { return js_get_atom(ctx, consts.JS_ATOM_empty) }
     int b0 = mem.get_byte(buf, 0)
-    if utf8_char_len(b0) == len {
-        // utf8_get(buf): ASCII fast path inline, else __utf8_get.
+    if utf8_char_len_(b0) == len {
+        // utf8_get(buf): ASCII fast path inline, else utf8_get.
         int c = b0
         if b0 >= 0x80 {
             cl = malloc(8)
-            c = __utf8_get(buf, cl)
+            c = utf8_get(buf, cl)
             free(cl)
         }
-        return new_string_char(c)
+        return new_string_char_(c)
     }
     p = alloc.js_alloc_string(ctx, len)
     if p == null { return jstag.JS_EXCEPTION }

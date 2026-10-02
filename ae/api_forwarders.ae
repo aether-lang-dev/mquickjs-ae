@@ -23,20 +23,31 @@ JS_ToCString(ctx: ptr, val: long, buf: ptr) -> ptr {
 }
 
 // int JS_ToNumber(JSContext *ctx, double *pres, JSValue val)
+// @c_callback keeps the bare C symbol: called from example.c (mquickjs.h embedding API).
+@c_callback
 JS_ToNumber(ctx: ptr, pres: ptr, val: long) -> int {
     return coerce.to_number(ctx, pres, val)
 }
 
 // JSValue JS_ToString(JSContext *ctx, JSValue val)
+// @c_callback keeps the bare C symbol: ae.ops and ae.strbuf (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_JS_ToString.
+@c_callback
 JS_ToString(ctx: ptr, val: long) -> long {
     return coerce.to_string(ctx, val)
 }
 
 // JSValue JS_ToPrimitive(JSContext *ctx, JSValue val, int hint)
+// @c_callback keeps the bare C symbol: ae.ops (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_JS_ToPrimitive.
+@c_callback
 JS_ToPrimitive(ctx: ptr, val: long, hint: int) -> long { return coerce.to_primitive(ctx, val, hint) }
 
 JS_ToInt32Internal(ctx: ptr, pres: ptr, val: long, sat_flag: int) -> int { return coerce.to_int32_internal(ctx, pres, val, sat_flag) }
 JS_ToInt32(ctx: ptr, pres: ptr, val: long) -> int { return coerce.to_int32(ctx, pres, val) }
+// @c_callback keeps the bare C symbol: ae.ops (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_JS_ToUint32.
+@c_callback
 JS_ToUint32(ctx: ptr, pres: ptr, val: long) -> int { return coerce.to_uint32(ctx, pres, val) }
 JS_ToInt32Sat(ctx: ptr, pres: ptr, val: long) -> int { return coerce.to_int32_sat(ctx, pres, val) }
 JS_ToInt32Clamp(ctx: ptr, pres: ptr, val: long, mn: int, mx: int, min_offset: int) -> int { return coerce.to_int32_clamp(ctx, pres, val, mn, mx, min_offset) }
@@ -44,7 +55,13 @@ JS_ToInt32Clamp(ctx: ptr, pres: ptr, val: long, mn: int, mx: int, min_offset: in
 JS_ToUint8Clamp(ctx: ptr, pres: ptr, val: long) -> int { return coerce.to_uint8_clamp(ctx, pres, val) }
 js_to_quoted_string(ctx: ptr, b: ptr, str: long) -> int { return coerce.to_quoted_string(ctx, b, str) }
 JS_ToStringCheckObject(ctx: ptr, val: long) -> long { return coerce.to_string_check_object(ctx, val) }
+// @c_callback keeps the bare C symbol: ae.ops (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_JS_ToPropertyKey.
+@c_callback
 JS_ToPropertyKey(ctx: ptr, val: long) -> long { return coerce.to_property_key(ctx, val) }
 js_strict_eq_slow(ctx: ptr, is_neq: int) -> long { return coerce.strict_eq_slow(ctx, is_neq) }
 
+// @c_callback keeps the bare C symbol: ae.getpkg (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_get_special_prop.
+@c_callback
 get_special_prop(ctx: ptr, val: long) -> long { return coerce.get_special_prop(ctx, val) }

@@ -30,7 +30,7 @@ const TOK_INC = 145
 const TOK_DEC = 144
 
 
-f_isnan(d: float) -> int {
+f_isnan_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK {
         if (bits & consts.MANT_MASK) != 0 { return 1 }
@@ -38,14 +38,14 @@ f_isnan(d: float) -> int {
     return 0
 }
 
-is_digit(c: int) -> int {
+is_digit_(c: int) -> int {
     if c >= 0x30 { if c <= 0x39 { return 1 } }
     return 0
 }
 
 // set token.val, token.value, token.source_pos via offsets into s
 set_tok_val(s: ptr, v: int) { mem.set_int(s, 8, v) }
-set_tok_value(s: ptr, v: long) { mem.set_long(s, 24, v) }
+set_tok_value_(s: ptr, v: long) { mem.set_long(s, 24, v) }
 
 // scan a number at offset `pos`; returns the new pos, sets token.
 parse_number(s: ptr, pos: long) -> long {
@@ -60,14 +60,14 @@ parse_number(s: ptr, pos: long) -> long {
     long newp = mem.ptr_to_long(mem.get_ptr(pnext, 0))
     free(pnext)
     js_free(ctx, tmp_arr)
-    if f_isnan(d) != 0 { js_parse_error(s, "invalid number literal") }
+    if f_isnan_(d) != 0 { js_parse_error(s, "invalid number literal") }
     set_tok_val(s, consts.TOK_NUMBER)
     mem.set_float64(s, 16, d)   // token.u.d
     return newp - mem.ptr_to_long(buf)
 }
 
 
-is_ident_first(c: int) -> int {
+is_ident_first_(c: int) -> int {
     if c >= 0x61 { if c <= 0x7a { return 1 } }
     if c >= 0x41 { if c <= 0x5a { return 1 } }
     if c == 0x5f { return 1 }
@@ -81,7 +81,7 @@ next_after_string(s: ptr, pos: long, c: int) -> long {
     slot = malloc(8)
     mem.set_uint32(slot, 0, p)
     long v = js_parse_string(s, slot, c)
-    set_tok_value(s, v)
+    set_tok_value_(s, v)
     set_tok_val(s, consts.TOK_STRING)
     long newp = mem.get_uint32(slot, 0) & 0xffffffff
     free(slot)
@@ -152,7 +152,7 @@ handle_operator(s: ptr, pos: long, c: int, b1: int) -> long {
 next_token(s: ptr) {
     long pos = mem.get_uint32(s, 64) & 0xffffffff   // s->buf_pos
     (s as *JSParseState).got_lf = 0
-    set_tok_value(s, jstag.JS_NULL)
+    set_tok_value_(s, jstag.JS_NULL)
 
     int redo = 1
     while redo != 0 {
@@ -209,7 +209,7 @@ next_token(s: ptr) {
                 free(slot)
             } else if b1 == 61 { pos = pos + 2  set_tok_val(s, consts.TOK_DIV_ASSIGN) }
             else { pos = pos + 1  set_tok_val(s, c) }
-        } else if is_ident_first(c) != 0 {
+        } else if is_ident_first_(c) != 0 {
             pos = pos + 1
             slot = malloc(8)
             mem.set_uint32(slot, 0, pos)
@@ -218,12 +218,12 @@ next_token(s: ptr) {
             pos = mem.get_uint32(slot, 0) & 0xffffffff
             free(slot)
         } else if c == 46 {            // '.'
-            if is_digit(b1) != 0 { pos = parse_number(s, pos) }
+            if is_digit_(b1) != 0 { pos = parse_number(s, pos) }
             else { pos = pos + 1  set_tok_val(s, c) }
         } else if c == 48 {            // '0'
-            if is_digit(b1) != 0 { js_parse_error(s, "invalid number literal") }
+            if is_digit_(b1) != 0 { js_parse_error(s, "invalid number literal") }
             pos = parse_number(s, pos)
-        } else if is_digit(c) != 0 {
+        } else if is_digit_(c) != 0 {
             pos = parse_number(s, pos)
         } else {
             pos = handle_operator(s, pos, c, b1)

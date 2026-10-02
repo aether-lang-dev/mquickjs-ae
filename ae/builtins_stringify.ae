@@ -28,39 +28,39 @@ exports (js_json_stringify)
 
 const SP_OFF = 32         // ctx->sp (JSContext overlay)
 
-f_isfinite(d: float) -> int {
+f_isfinite_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK { return 0 }
     return 1
 }
 
-ctx_sp(ctx: ptr) -> ptr { return (ctx as *JSContext).sp }
-ctx_set_sp(ctx: ptr, v: ptr) { (ctx as *JSContext).sp = v }
+ctx_sp_(ctx: ptr) -> ptr { return (ctx as *JSContext).sp }
+ctx_set_sp_(ctx: ptr, v: ptr) { (ctx as *JSContext).sp = v }
 
 // *--ctx->sp = v
 sp_push(ctx: ptr, v: long) {
-    long newsp = mem.ptr_to_long(ctx_sp(ctx)) - 8
+    long newsp = mem.ptr_to_long(ctx_sp_(ctx)) - 8
     mem.set_long(mem.long_to_ptr(newsp), 0, v)
-    ctx_set_sp(ctx, mem.long_to_ptr(newsp))
+    ctx_set_sp_(ctx, mem.long_to_ptr(newsp))
 }
 // ctx->sp[i]
 sp_get(ctx: ptr, i: int) -> long {
-    return mem.get_long(ctx_sp(ctx), i * 8)
+    return mem.get_long(ctx_sp_(ctx), i * 8)
 }
 // ctx->sp[i] = v
-sp_set(ctx: ptr, i: int, v: long) {
-    mem.set_long(ctx_sp(ctx), i * 8, v)
+sp_set_(ctx: ptr, i: int, v: long) {
+    mem.set_long(ctx_sp_(ctx), i * 8, v)
 }
 // ctx->sp += consts.JSON_REC_SIZE
 sp_pop_frame(ctx: ptr) {
-    ctx_set_sp(ctx, mem.long_to_ptr(mem.ptr_to_long(ctx_sp(ctx)) + consts.JSON_REC_SIZE * 8))
+    ctx_set_sp_(ctx, mem.long_to_ptr(mem.ptr_to_long(ctx_sp_(ctx)) + consts.JSON_REC_SIZE * 8))
 }
 
-obj_array_len(p: ptr) -> int {
+obj_array_len_(p: ptr) -> int {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_uint32(mem.long_to_ptr(u), 8)
 }
-obj_array_tab(p: ptr) -> long {
+obj_array_tab_(p: ptr) -> long {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_long(mem.long_to_ptr(u), 0)
 }
@@ -69,7 +69,7 @@ obj_array_tab(p: ptr) -> long {
 js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     b = malloc(24)
     strbuf.string_buffer_push(ctx, b, 0)
-    stack_top = ctx_sp(ctx)
+    stack_top = ctx_sp_(ctx)
     nslot = malloc(8)
 
     int failed = 0
@@ -81,7 +81,7 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
         int looping = 1
         while looping != 0 {
-            if mem.ptr_to_long(ctx_sp(ctx)) >= mem.ptr_to_long(stack_top) { looping = 0 }
+            if mem.ptr_to_long(ctx_sp_(ctx)) >= mem.ptr_to_long(stack_top) { looping = 0 }
             else {
                 long obj = sp_get(ctx, 0)
                 if JS_IsFunction(ctx, obj) != 0 {
@@ -94,16 +94,16 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                     if cid == consts.JS_CLASS_ARRAY {
                         if idx == 0 { strbuf.string_buffer_putc(ctx, b, 91) }   // '['
                         p = jstag.value_to_ptr(sp_get(ctx, 0))
-                        if idx >= obj_array_len(p) {
+                        if idx >= obj_array_len_(p) {
                             strbuf.string_buffer_putc(ctx, b, 93)               // ']'
                             sp_pop_frame(ctx)
                         } else {
                             if idx != 0 { strbuf.string_buffer_putc(ctx, b, 44) }  // ','
-                            sp_set(ctx, 1, jstag.new_short_int(idx + 1))
+                            sp_set_(ctx, 1, jstag.new_short_int(idx + 1))
                             if JS_StackCheck(ctx, consts.JSON_REC_SIZE) != 0 { failed = 1  looping = 0 }
                             else {
                                 p = jstag.value_to_ptr(sp_get(ctx, 0))
-                                arr = jstag.value_to_ptr(obj_array_tab(p))
+                                arr = jstag.value_to_ptr(obj_array_tab_(p))
                                 long val = mem.get_long(arr, 8 + idx * 8)
                                 if circref.check_circular_ref(ctx, stack_top, val) != 0 { failed = 1  looping = 0 }
                                 else {
@@ -121,7 +121,7 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                             mem.set_long(slot_argv, 0, sp_get(ctx, 0))
                             long keys = js_object_keys(ctx, null, 1, slot_argv)
                             free(slot_argv)
-                            sp_set(ctx, 2, keys)
+                            sp_set_(ctx, 2, keys)
                             if jstag.is_exception(keys) != 0 { failed = 1  looping = 0 }
                         }
                         if failed == 0 {
@@ -132,13 +132,13 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                             long val = jstag.JS_UNDEFINED
                             while inner != 0 {
                                 pk = jstag.value_to_ptr(sp_get(ctx, 2))   // keys
-                                if idx >= obj_array_len(pk) {
+                                if idx >= obj_array_len_(pk) {
                                     strbuf.string_buffer_putc(ctx, b, 125)       // '}'
                                     sp_pop_frame(ctx)
                                     inner = 0
                                     ended = 1
                                 } else {
-                                    karr = jstag.value_to_ptr(obj_array_tab(pk))
+                                    karr = jstag.value_to_ptr(obj_array_tab_(pk))
                                     long prop = JS_ToPropertyKey(ctx, mem.get_long(karr, 8 + idx * 8))
                                     val = JS_GetProperty(ctx, sp_get(ctx, 0), prop)
                                     if jstag.is_exception(val) != 0 { failed = 1  inner = 0  looping = 0 }
@@ -150,9 +150,9 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                                 if failed == 0 {
                                     // emit "key":value
                                     if saved_idx != 0 { strbuf.string_buffer_putc(ctx, b, 44) }  // ','
-                                    sp_set(ctx, 1, jstag.new_short_int(idx + 1))
+                                    sp_set_(ctx, 1, jstag.new_short_int(idx + 1))
                                     pk = jstag.value_to_ptr(sp_get(ctx, 2))
-                                    karr = jstag.value_to_ptr(obj_array_tab(pk))
+                                    karr = jstag.value_to_ptr(obj_array_tab_(pk))
                                     int qr = js_to_quoted_string(ctx, b, mem.get_long(karr, 8 + idx * 8))
                                     strbuf.string_buffer_putc(ctx, b, 58)   // ':'
                                     int sc = JS_StackCheck(ctx, consts.JSON_REC_SIZE)
@@ -171,7 +171,7 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                     if JS_ToNumber(ctx, nslot, obj) != 0 { failed = 1  looping = 0 }
                     else {
                         float d = mem.get_float64(nslot, 0)
-                        if f_isfinite(d) == 0 {
+                        if f_isfinite_(d) == 0 {
                             strbuf.string_buffer_concat(ctx, b, js_get_atom(ctx, consts.JS_ATOM_null))
                             sp_pop_frame(ctx)
                         } else {
@@ -197,7 +197,7 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long result = strbuf.string_buffer_pop(ctx, b)
     free(b)
     if failed != 0 {
-        ctx_set_sp(ctx, stack_top)
+        ctx_set_sp_(ctx, stack_top)
         return jstag.JS_EXCEPTION
     }
     return result

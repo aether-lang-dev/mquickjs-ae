@@ -42,6 +42,9 @@ js_shrink(ctx: ptr, ptr_: ptr, new_size: int) -> ptr {
 }
 
 // void *js_malloc(JSContext *ctx, uint32_t size, int mtag)
+// @c_callback keeps the bare C symbol: ae.vstore (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_js_malloc.
+@c_callback
 js_malloc(ctx: ptr, size: int, mtag: int) -> ptr {
     if size == 0 { return null }
     int sz = (size + (jstag.JSW - 1)) & (0 - jstag.JSW)   // round up to jstag.JSW

@@ -26,7 +26,7 @@ extern JS_IsNumber(ctx: ptr, val: long) -> int
 exports (js_get_array, js_array_get_length, js_array_set_length, js_array_pop, js_array_push, js_array_shift, js_array_reverse, js_array_indexOf, js_array_toString, js_array_slice, js_array_constructor, js_array_concat, js_array_splice)
 
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
@@ -41,12 +41,12 @@ js_get_array(ctx: ptr, obj: long) -> ptr {
 }
 
 // array length lives in JSArrayData.len at union offset +8.
-array_len_of(p: ptr) -> int {
+array_len_of_(p: ptr) -> int {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_uint32(mem.long_to_ptr(u), 8)
 }
 
-array_tab_of(p: ptr) -> long {
+array_tab_of_(p: ptr) -> long {
     long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
     return mem.get_long(mem.long_to_ptr(u), 0)
 }
@@ -56,7 +56,7 @@ js_array_get_length(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    return jstag.new_short_int(array_len_of(p))
+    return jstag.new_short_int(array_len_of_(p))
 }
 
 // JSValue js_array_set_length(ctx, this_val, argc, argv)
@@ -64,7 +64,7 @@ js_array_set_length(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv = mem.get_long(this_val, 0)
     if js_get_array(ctx, tv) == null { return jstag.JS_EXCEPTION }
     slot = malloc(8)
-    if JS_ToInt32(ctx, slot, argv_get(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32(ctx, slot, argv_get_(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int new_len = mem.get_int(slot, 0)
     free(slot)
     if js_array_resize(ctx, this_val, new_len) != 0 { return jstag.JS_EXCEPTION }
@@ -308,7 +308,7 @@ js_array_concat(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    long len64 = array_len_of(p)
+    long len64 = array_len_of_(p)
     int i = 0
     while i < argc {
         int al = arr_len_or_neg(ctx, mem.get_long(argv, i * 8))
@@ -370,7 +370,7 @@ js_array_splice(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv = mem.get_long(this_val, 0)
     p = js_get_array(ctx, tv)
     if p == null { return jstag.JS_EXCEPTION }
-    int len = array_len_of(p)
+    int len = array_len_of_(p)
 
     slot = malloc(8)
     if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 0), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
@@ -393,13 +393,13 @@ js_array_splice(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long obj = JS_NewArray(ctx, del_count)
     if jstag.is_exception(obj) != 0 { return obj }
     p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-    if array_len_of(p) != len {
+    if array_len_of_(p) != len {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "array length was modified")
     }
-    arr = jstag.value_to_ptr(array_tab_of(p))
+    arr = jstag.value_to_ptr(array_tab_of_(p))
     long src_tail = mem.ptr_to_long(arr) + 8
     p1 = jstag.value_to_ptr(obj)
-    arr1 = jstag.value_to_ptr(array_tab_of(p1))
+    arr1 = jstag.value_to_ptr(array_tab_of_(p1))
     long del_tail = mem.ptr_to_long(arr1) + 8
 
     int i = 0
@@ -425,7 +425,7 @@ js_array_splice(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         if rc != 0 { err = 1 }
         else {
             p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-            arr = jstag.value_to_ptr(array_tab_of(p))
+            arr = jstag.value_to_ptr(array_tab_of_(p))
             src_tail = mem.ptr_to_long(arr) + 8
             if del_count < item_count {
                 // memmove up after grow

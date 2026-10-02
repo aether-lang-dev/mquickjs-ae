@@ -30,13 +30,13 @@ exports (re_parse_alternative)
 const CAPTURE_COUNT_MAX = 255
 
 
-byte_code_len(s: ptr) -> int { return mem.get_uint32(s, 88) }
+byte_code_len_(s: ptr) -> int { return mem.get_uint32(s, 88) }
 set_byte_code_len(s: ptr, v: int) { mem.set_uint32(s, 88, v) }
-buf_pos(s: ptr) -> int { return mem.get_uint32(s, 64) }
-set_buf_pos(s: ptr, v: int) { mem.set_uint32(s, 64, v) }
+buf_pos_(s: ptr) -> int { return mem.get_uint32(s, 64) }
+set_buf_pos_(s: ptr, v: int) { mem.set_uint32(s, 64, v) }
 buf_len(s: ptr) -> int { return mem.get_uint32(s, 68) }
 source_ptr(s: ptr) -> long { return mem.ptr_to_long((s as *JSParseState).source_buf) }
-source_byte(s: ptr, pos: int) -> int { return mem.get_byte((s as *JSParseState).source_buf, pos) }
+source_byte_(s: ptr, pos: int) -> int { return mem.get_byte((s as *JSParseState).source_buf, pos) }
 capture_count(s: ptr) -> int { return mem.get_byte(s, 136) }
 set_capture_count(s: ptr, v: int) { mem.set_byte(s, 136, v) }
 // regex flag bits in byte @137: re_in_js@0 multi_line@1 dotall@2 ignore_case@3 is_unicode@4
@@ -47,22 +47,22 @@ ignore_case(s: ptr) -> int { return (re_flags_byte(s) >> 3) & 1 }
 is_unicode(s: ptr) -> int { return (re_flags_byte(s) >> 4) & 1 }
 
 // regexp bytecode buffer
-re_buf(s: ptr) -> long {
+re_buf_(s: ptr) -> long {
     arr = jstag.value_to_ptr((s as *JSParseState).byte_code)
     return mem.ptr_to_long(arr) + 8
 }
-re_get_byte(s: ptr, pos: int) -> int { return mem.get_byte(mem.long_to_ptr(re_buf(s) + pos), 0) }
-re_set_byte(s: ptr, pos: int, v: int) { mem.set_byte(mem.long_to_ptr(re_buf(s) + pos), 0, v) }
-re_put_u32(s: ptr, pos: int, v: int) { mem.set_uint32(mem.long_to_ptr(re_buf(s) + pos), 0, v) }
+re_get_byte(s: ptr, pos: int) -> int { return mem.get_byte(mem.long_to_ptr(re_buf_(s) + pos), 0) }
+re_set_byte_(s: ptr, pos: int, v: int) { mem.set_byte(mem.long_to_ptr(re_buf_(s) + pos), 0, v) }
+re_put_u32_(s: ptr, pos: int, v: int) { mem.set_uint32(mem.long_to_ptr(re_buf_(s) + pos), 0, v) }
 
-push_int(s: ptr, v: int) { stackalloc.js_parse_push_val(s, jstag.new_short_int(v)) }
-pop_int(s: ptr) -> int { return jstag.get_int(stackalloc.js_parse_pop_val(s)) }
+push_int_(s: ptr, v: int) { stackalloc.js_parse_push_val(s, jstag.new_short_int(v)) }
+pop_int_(s: ptr) -> int { return jstag.get_int(stackalloc.js_parse_pop_val(s)) }
 
-enc(cur_state: int, fn: int, param: int) -> int {
+enc_(cur_state: int, fn: int, param: int) -> int {
     return cur_state | (fn << 8) | (param << 16)
 }
 
-is_digit(c: int) -> int {
+is_digit_(c: int) -> int {
     if c >= 0x30 { if c <= 0x39 { return 1 } }
     return 0
 }
@@ -76,10 +76,10 @@ re_parse_alternative(s: ptr, st: int, dummy_param: int) -> int {
     if st == 0 {
         // resume of (?:...). SAVE4: last_term_start, term_start,
         // last_atom_start, last_capture_count.
-        int last_capture_count = pop_int(s)
-        int last_atom_start = pop_int(s)
-        int term_start = pop_int(s)
-        int last_term_start = pop_int(s)
+        int last_capture_count = pop_int_(s)
+        int last_atom_start = pop_int_(s)
+        int term_start = pop_int_(s)
+        int last_term_start = pop_int_(s)
         re.re_parse_expect(s, 41)   // ')'
         return term_tail(s, last_term_start, term_start, last_atom_start, last_capture_count)
     }
@@ -87,26 +87,26 @@ re_parse_alternative(s: ptr, st: int, dummy_param: int) -> int {
     if st == 1 {
         // resume of lookahead. SAVE6: last_term_start, term_start,
         // last_atom_start, last_capture_count, is_neg, pos.
-        int pos = pop_int(s)
-        int is_neg = pop_int(s)
-        int last_capture_count = pop_int(s)
-        int last_atom_start = pop_int(s)
-        int term_start = pop_int(s)
-        int last_term_start = pop_int(s)
+        int pos = pop_int_(s)
+        int is_neg = pop_int_(s)
+        int last_capture_count = pop_int_(s)
+        int last_atom_start = pop_int_(s)
+        int term_start = pop_int_(s)
+        int last_term_start = pop_int_(s)
         re.re_parse_expect(s, 41)   // ')'
         re.re_emit_op(s, reopcodes.REOP_lookahead_match + is_neg)
         // patch the jump after the 'match'
-        re_put_u32(s, pos, byte_code_len(s) - (pos + 4))
+        re_put_u32_(s, pos, byte_code_len_(s) - (pos + 4))
         return term_tail(s, last_term_start, term_start, last_atom_start, last_capture_count)
     }
 
     // st == 2: resume of capture group. SAVE5: last_term_start,
     // term_start, last_atom_start, last_capture_count, capture_index.
-    int capture_index = pop_int(s)
-    int last_capture_count = pop_int(s)
-    int last_atom_start = pop_int(s)
-    int term_start = pop_int(s)
-    int last_term_start = pop_int(s)
+    int capture_index = pop_int_(s)
+    int last_capture_count = pop_int_(s)
+    int last_atom_start = pop_int_(s)
+    int term_start = pop_int_(s)
+    int last_term_start = pop_int_(s)
     re.re_emit_op_u8(s, reopcodes.REOP_save_end, capture_index)
     re.re_parse_expect(s, 41)   // ')'
     return term_tail(s, last_term_start, term_start, last_atom_start, last_capture_count)
@@ -115,29 +115,29 @@ re_parse_alternative(s: ptr, st: int, dummy_param: int) -> int {
 // The main term loop. Returns RET at end-of-alternative, or an enc()
 // when a group recurses into re_parse_disjunction.
 term_loop(s: ptr, last_term_start: int) -> int {
-    while buf_pos(s) < buf_len(s) {
-        int term_start = byte_code_len(s)
+    while buf_pos_(s) < buf_len(s) {
+        int term_start = byte_code_len_(s)
         int last_atom_start = 0 - 1
         int last_capture_count = 0
-        int c = source_byte(s, buf_pos(s))
+        int c = source_byte_(s, buf_pos_(s))
 
         // '|' or ')' end the alternative
         if c == 124 { return consts.PARSE_STATE_RET }   // '|'
         if c == 41 { return consts.PARSE_STATE_RET }    // ')'
 
         if c == 94 {   // '^'
-            set_buf_pos(s, buf_pos(s) + 1)
+            set_buf_pos_(s, buf_pos_(s) + 1)
             int op = reopcodes.REOP_line_start
             if multi_line(s) != 0 { op = reopcodes.REOP_line_start_m }
             re.re_emit_op(s, op)
         } else if c == 36 {   // '$'
-            set_buf_pos(s, buf_pos(s) + 1)
+            set_buf_pos_(s, buf_pos_(s) + 1)
             int op = reopcodes.REOP_line_end
             if multi_line(s) != 0 { op = reopcodes.REOP_line_end_m }
             re.re_emit_op(s, op)
         } else if c == 46 {   // '.'
-            set_buf_pos(s, buf_pos(s) + 1)
-            last_atom_start = byte_code_len(s)
+            set_buf_pos_(s, buf_pos_(s) + 1)
+            last_atom_start = byte_code_len_(s)
             last_capture_count = capture_count(s)
             int op = reopcodes.REOP_dot
             if dotall(s) != 0 { op = reopcodes.REOP_any }
@@ -157,13 +157,13 @@ term_loop(s: ptr, last_term_start: int) -> int {
                 last_capture_count = capture_count(s)
             }
         } else if c == 91 {   // '['
-            last_atom_start = byte_code_len(s)
+            last_atom_start = byte_code_len_(s)
             last_capture_count = capture_count(s)
             re.re_parse_char_class(s)
         } else if quantifier_char(c) != 0 {
             js_parse_error(s, "nothing to repeat")
         } else if c == 123 {   // '{'
-            if is_unicode(s) == 0 { if is_digit(source_byte(s, buf_pos(s) + 1)) == 0 {
+            if is_unicode(s) == 0 { if is_digit_(source_byte_(s, buf_pos_(s) + 1)) == 0 {
                 int rr = class_atom_term(s, term_start)
                 last_atom_start = rr
                 last_capture_count = capture_count(s)
@@ -204,23 +204,23 @@ term_tail_inline(s: ptr, last_term_start: int, term_start: int, last_atom_start:
         re.re_parse_quantifier(s, last_atom_start, last_capture_count)
     }
     // combine several single chars when possible
-    bufp = mem.long_to_ptr(re_buf(s))
+    bufp = mem.long_to_ptr(re_buf_(s))
     if last_term_start >= 0 {
         int n1 = re.re_is_char(bufp, last_term_start, term_start)
         if n1 > 0 {
-            int n2 = re.re_is_char(bufp, term_start, byte_code_len(s))
+            int n2 = re.re_is_char(bufp, term_start, byte_code_len_(s))
             if n2 > 0 {
                 if (n1 + n2) <= 4 {
                     int total = n1 + n2
-                    re_set_byte(s, last_term_start, reopcodes.REOP_char1 + total - 1)
+                    re_set_byte_(s, last_term_start, reopcodes.REOP_char1 + total - 1)
                     // shift the bytes after the merged op down by one,
                     // closing the gap left by the dropped cur opcode.
                     int i = 0
                     while i < n2 {
-                        re_set_byte(s, last_term_start + total + i, re_get_byte(s, last_term_start + total + i + 1))
+                        re_set_byte_(s, last_term_start + total + i, re_get_byte(s, last_term_start + total + i + 1))
                         i = i + 1
                     }
-                    set_byte_code_len(s, byte_code_len(s) - 1)
+                    set_byte_code_len(s, byte_code_len_(s) - 1)
                     return last_term_start
                 }
             }
@@ -239,18 +239,18 @@ quantifier_char(c: int) -> int {
 // '(' group handling: (?:...), lookahead (?=/?!), or a capture.
 // Returns an enc() that recurses into re_parse_disjunction.
 parse_group(s: ptr, last_term_start: int, term_start: int) -> int {
-    if source_byte(s, buf_pos(s) + 1) == 63 {   // '?'
-        int c = source_byte(s, buf_pos(s) + 2)
+    if source_byte_(s, buf_pos_(s) + 1) == 63 {   // '?'
+        int c = source_byte_(s, buf_pos_(s) + 2)
         if c == 58 {   // ':'
-            set_buf_pos(s, buf_pos(s) + 3)
-            int last_atom_start = byte_code_len(s)
+            set_buf_pos_(s, buf_pos_(s) + 3)
+            int last_atom_start = byte_code_len_(s)
             int last_capture_count = capture_count(s)
             // PARSE_CALL_SAVE4(s, 0, disjunction, 0, last_term_start, term_start, last_atom_start, last_capture_count)
-            push_int(s, last_term_start)
-            push_int(s, term_start)
-            push_int(s, last_atom_start)
-            push_int(s, last_capture_count)
-            return enc(0, consts.PARSE_FUNC_re_parse_disjunction, 0)
+            push_int_(s, last_term_start)
+            push_int_(s, term_start)
+            push_int_(s, last_atom_start)
+            push_int_(s, last_capture_count)
+            return enc_(0, consts.PARSE_FUNC_re_parse_disjunction, 0)
         }
         if c == 61 { return group_lookahead(s, last_term_start, term_start, 0) }   // '='
         if c == 33 { return group_lookahead(s, last_term_start, term_start, 1) }   // '!'
@@ -258,53 +258,53 @@ parse_group(s: ptr, last_term_start: int, term_start: int) -> int {
         return consts.PARSE_STATE_RET
     }
     // capture without group name
-    set_buf_pos(s, buf_pos(s) + 1)
+    set_buf_pos_(s, buf_pos_(s) + 1)
     if capture_count(s) >= CAPTURE_COUNT_MAX { js_parse_error(s, "too many captures") }
-    int last_atom_start = byte_code_len(s)
+    int last_atom_start = byte_code_len_(s)
     int last_capture_count = capture_count(s)
     int capture_index = capture_count(s)
     set_capture_count(s, capture_count(s) + 1)
     re.re_emit_op_u8(s, reopcodes.REOP_save_start, capture_index)
     // PARSE_CALL_SAVE5(s, 2, disjunction, 0, last_term_start, term_start, last_atom_start, last_capture_count, capture_index)
-    push_int(s, last_term_start)
-    push_int(s, term_start)
-    push_int(s, last_atom_start)
-    push_int(s, last_capture_count)
-    push_int(s, capture_index)
-    return enc(2, consts.PARSE_FUNC_re_parse_disjunction, 0)
+    push_int_(s, last_term_start)
+    push_int_(s, term_start)
+    push_int_(s, last_atom_start)
+    push_int_(s, last_capture_count)
+    push_int_(s, capture_index)
+    return enc_(2, consts.PARSE_FUNC_re_parse_disjunction, 0)
 }
 
 group_lookahead(s: ptr, last_term_start: int, term_start: int, is_neg: int) -> int {
-    set_buf_pos(s, buf_pos(s) + 3)
+    set_buf_pos_(s, buf_pos_(s) + 3)
     int pos = re.re_emit_op_u32(s, reopcodes.REOP_lookahead + is_neg, 0)
     // PARSE_CALL_SAVE6(s, 1, disjunction, 0, last_term_start, term_start, last_atom_start, last_capture_count, is_neg, pos)
-    push_int(s, last_term_start)
-    push_int(s, term_start)
-    push_int(s, byte_code_len(s))     // last_atom_start (unused on resume but saved)
-    push_int(s, capture_count(s))     // last_capture_count
-    push_int(s, is_neg)
-    push_int(s, pos)
-    return enc(1, consts.PARSE_FUNC_re_parse_disjunction, 0)
+    push_int_(s, last_term_start)
+    push_int_(s, term_start)
+    push_int_(s, byte_code_len_(s))     // last_atom_start (unused on resume but saved)
+    push_int_(s, capture_count(s))     // last_capture_count
+    push_int_(s, is_neg)
+    push_int_(s, pos)
+    return enc_(1, consts.PARSE_FUNC_re_parse_disjunction, 0)
 }
 
 // '\' escape: word boundary, decimal escapes / back references.
 // Returns last_atom_start (>=0), -2 for \b/\B (no atom), or -1 to mean
 // "treat as a class atom".
 parse_escape(s: ptr, term_start: int) -> int {
-    int c1 = source_byte(s, buf_pos(s) + 1)
+    int c1 = source_byte_(s, buf_pos_(s) + 1)
     if c1 == 98 {   // 'b'
         re.re_emit_op(s, reopcodes.REOP_word_boundary)
-        set_buf_pos(s, buf_pos(s) + 2)
+        set_buf_pos_(s, buf_pos_(s) + 2)
         return 0 - 2
     }
     if c1 == 66 {   // 'B'
         re.re_emit_op(s, reopcodes.REOP_not_word_boundary)
-        set_buf_pos(s, buf_pos(s) + 2)
+        set_buf_pos_(s, buf_pos_(s) + 2)
         return 0 - 2
     }
     if c1 == 48 {   // '0'
-        set_buf_pos(s, buf_pos(s) + 2)
-        if is_digit(source_byte(s, buf_pos(s))) != 0 {
+        set_buf_pos_(s, buf_pos_(s) + 2)
+        if is_digit_(source_byte_(s, buf_pos_(s))) != 0 {
             js_parse_error(s, "invalid decimal escape in regular expression")
         }
         // normal_char with c = 0
@@ -312,13 +312,13 @@ parse_escape(s: ptr, term_start: int) -> int {
     }
     if c1 >= 49 { if c1 <= 57 {   // '1'..'9' back reference
         slot = malloc(8)
-        mem.set_long(slot, 0, source_ptr(s) + buf_pos(s) + 1)
+        mem.set_long(slot, 0, source_ptr(s) + buf_pos_(s) + 1)
         int c = parse_digits(slot)
         long np = mem.get_long(slot, 0)
         free(slot)
-        set_buf_pos(s, np - source_ptr(s))
+        set_buf_pos_(s, np - source_ptr(s))
         if c > CAPTURE_COUNT_MAX { js_parse_error(s, "back reference is out of range") }
-        int last_atom_start = byte_code_len(s)
+        int last_atom_start = byte_code_len_(s)
         re.re_emit_op_u8(s, reopcodes.REOP_back_reference + ignore_case(s), c)
         return last_atom_start
     } }
@@ -335,14 +335,14 @@ class_atom_term(s: ptr, term_start: int) -> int {
 
 // emit a (possibly range) normal character; returns last_atom_start.
 emit_normal_char(s: ptr, c: int) -> int {
-    int last_atom_start = byte_code_len(s)
+    int last_atom_start = byte_code_len_(s)
     if c >= consts.CLASS_RANGE_BASE {
         int cc = c - consts.CLASS_RANGE_BASE
         if cc == consts.CHAR_RANGE_s { re.re_emit_op(s, reopcodes.REOP_space + cc - consts.CHAR_RANGE_s) }
         else if cc == (consts.CHAR_RANGE_s + 1) { re.re_emit_op(s, reopcodes.REOP_space + cc - consts.CHAR_RANGE_s) }
         else {
             re.re_emit_op_u16(s, reopcodes.REOP_range, 0)
-            int range_start = byte_code_len(s)
+            int range_start = byte_code_len_(s)
             re.re_emit_range_base(s, cc)
             re.re_range_optimize(s, range_start, 0)
         }

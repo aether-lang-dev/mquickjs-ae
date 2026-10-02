@@ -21,7 +21,7 @@ exports (get_ext_var_name, find_func_ext_var, find_ext_var, add_func_ext_var, ad
 // JSFunctionBytecode: ext_vars @40 (JSValue), ext_vars_len @50 (u16)
 
 // arr->arr[i] (8-byte JSValues @ offset 8)
-va_get(arrval: long, i: int) -> long {
+va_get_(arrval: long, i: int) -> long {
     long base = mem.ptr_to_long(jstag.value_to_ptr(arrval)) + consts.VA_ARR
     return mem.get_long(mem.long_to_ptr(base + i * 8), 0)
 }
@@ -31,7 +31,7 @@ get_ext_var_name(s: ptr, var_idx: int) -> long {
     long cur_func = mem.get_long(s, consts.JSPS_CUR_FUNC)
     b = jstag.value_to_ptr(cur_func)
     long ext_vars = mem.get_long(b, consts.FB_EXT_VARS)
-    return va_get(ext_vars, 2 * var_idx)
+    return va_get_(ext_vars, 2 * var_idx)
 }
 
 // int find_func_ext_var(JSParseState *s, JSValue func, JSValue name)
@@ -41,7 +41,7 @@ find_func_ext_var(s: ptr, fobj: long, name: long) -> int {
     int n = mem.get_uint16(b, consts.FB_EXT_VARS_LEN)
     int i = 0
     while i < n {
-        if va_get(ext_vars, 2 * i) == name { return i }
+        if va_get_(ext_vars, 2 * i) == name { return i }
         i = i + 1
     }
     return 0 - 1
@@ -53,10 +53,10 @@ find_ext_var(s: ptr, name: long) -> int {
     return find_func_ext_var(s, cur_func, name)
 }
 
-max_int(a: int, b: int) -> int { if a > b { return a } return b }
+max_int_(a: int, b: int) -> int { if a > b { return a } return b }
 
 // arr->arr[i] = v
-va_set(arrval: long, i: int, v: long) {
+va_set_(arrval: long, i: int, v: long) {
     long base = mem.ptr_to_long(jstag.value_to_ptr(arrval)) + consts.VA_ARR
     mem.set_long(mem.long_to_ptr(base + i * 8), 0, v)
 }
@@ -76,7 +76,7 @@ add_func_ext_var(s: ptr, fobj: long, name: long, decl: int) -> int {
     mem.set_ptr(ref, 24, mem.long_to_ptr(mem.ptr_to_long(ref))) // name.prev = &func ref
     (ctx as *JSContext).top_gc_ref = mem.long_to_ptr(mem.ptr_to_long(ref) + 16)
 
-    int newsz = max_int(len + 1, 2) * 2
+    int newsz = max_int_(len + 1, 2) * 2
     long new_ext_vars = js_resize_value_array(ctx, mem.get_long(b, consts.FB_EXT_VARS), newsz)
 
     name = mem.get_long(ref, 16)
@@ -88,9 +88,9 @@ add_func_ext_var(s: ptr, fobj: long, name: long, decl: int) -> int {
 
     b = jstag.value_to_ptr(fobj)
     mem.set_long(b, consts.FB_EXT_VARS, new_ext_vars)
-    va_set(new_ext_vars, 2 * len, name)
+    va_set_(new_ext_vars, 2 * len, name)
     long declv = decl
-    va_set(new_ext_vars, 2 * len + 1, declv << 1)              // JS_NewShortInt(decl)
+    va_set_(new_ext_vars, 2 * len + 1, declv << 1)              // JS_NewShortInt(decl)
     mem.set_uint16(b, consts.FB_EXT_VARS_LEN, len + 1)
     return len
 }

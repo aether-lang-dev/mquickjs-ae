@@ -18,7 +18,7 @@ exports (js_string_charAt)
 
 
 // JS_NewStringChar(c) = JS_VALUE_MAKE_SPECIAL(jstag.TAG_STRING_CHAR, c)
-new_string_char(c: int) -> long {
+new_string_char_(c: int) -> long {
     long lc = c & 0xffffffff
     return jstag.make_special(jstag.TAG_STRING_CHAR, lc)
 }
@@ -52,5 +52,5 @@ js_string_charAt(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> l
     }
     if magic == consts.MAGIC_CHARCODEAT { return jstag.new_short_int(c) }
     if magic == consts.MAGIC_CODEPOINTAT { return jstag.new_short_int(c) }
-    return new_string_char(c)
+    return new_string_char_(c)
 }

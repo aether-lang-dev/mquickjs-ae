@@ -23,7 +23,7 @@ exports (
 )
 
 
-f_isnan(d: float) -> int {
+f_isnan_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK {
         if (bits & consts.MANT_MASK) != 0 { return 1 }
@@ -31,13 +31,13 @@ f_isnan(d: float) -> int {
     return 0
 }
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
 // double js_math_sign(double a)
 js_math_sign(a: float) -> float {
-    if f_isnan(a) != 0 { return a }
+    if f_isnan_(a) != 0 { return a }
     if a == 0.0 { return a }
     if a < 0.0 { return 0.0 - 1.0 }
     return 1.0
@@ -55,9 +55,9 @@ js_math_fround(a: float) -> float {
 // JSValue js_math_atan2(ctx, this_val, argc, argv)
 js_math_atan2(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     sy = malloc(8)
-    if JS_ToNumber(ctx, sy, argv_get(argv, 0)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, sy, argv_get_(argv, 0)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
     float y = mem.get_float64(sy, 0)
-    if JS_ToNumber(ctx, sy, argv_get(argv, 1)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, sy, argv_get_(argv, 1)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
     float x = mem.get_float64(sy, 0)
     free(sy)
     return JS_NewFloat64(ctx, js_atan2(y, x))
@@ -66,9 +66,9 @@ js_math_atan2(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 // JSValue js_math_pow(ctx, this_val, argc, argv)
 js_math_pow(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     s = malloc(8)
-    if JS_ToNumber(ctx, s, argv_get(argv, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, s, argv_get_(argv, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
     float x = mem.get_float64(s, 0)
-    if JS_ToNumber(ctx, s, argv_get(argv, 1)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, s, argv_get_(argv, 1)) != 0 { free(s)  return jstag.JS_EXCEPTION }
     float y = mem.get_float64(s, 0)
     free(s)
     return JS_NewFloat64(ctx, js_pow(x, y))
@@ -102,12 +102,12 @@ js_math_min_max(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lo
     int i = 1
     int generic = 0
 
-    long a0 = argv_get(argv, 0)
+    long a0 = argv_get_(argv, 0)
     if jstag.is_int(a0) != 0 {
         int r1 = jstag.get_int(a0)
         int broke = 0
         while i < argc {
-            long ai = argv_get(argv, i)
+            long ai = argv_get_(argv, i)
             if jstag.is_int(ai) == 0 {
                 r = r1
                 broke = 1
@@ -137,10 +137,10 @@ js_math_min_max(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lo
     // generic case: r holds the running result, scan from i
     slot = malloc(8)
     while i < argc {
-        if JS_ToNumber(ctx, slot, argv_get(argv, i)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToNumber(ctx, slot, argv_get_(argv, i)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
         float a = mem.get_float64(slot, 0)
-        if f_isnan(r) == 0 {
-            if f_isnan(a) != 0 {
+        if f_isnan_(r) == 0 {
+            if f_isnan_(a) != 0 {
                 r = a
             } else {
                 if is_max != 0 { r = jshelpers.js_fmax(r, a) }

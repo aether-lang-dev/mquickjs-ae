@@ -1,4 +1,4 @@
-// Array helpers ported from mquickjs.c. js_get_array unwraps an array
+// Array helpers ported from mquickjs.c. js_get_array_ unwraps an array
 // object (throwing if not one); js_array_buffer_alloc allocates an
 // ArrayBuffer wrapping a zeroed byte array, GC-rooting the backing buffer
 // across the wrapper-object allocation. Provides the bare C symbols.
@@ -16,11 +16,11 @@ extern memset(dst: ptr, c: int, n: long) -> ptr
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 
-exports (js_get_array, js_array_buffer_alloc)
+exports (js_array_buffer_alloc)
 
 
 // JSObject *js_get_array(JSContext *ctx, JSValue obj)
-js_get_array(ctx: ptr, obj: long) -> ptr {
+js_get_array_(ctx: ptr, obj: long) -> ptr {
     p = js_get_object_class(ctx, obj, consts.JS_CLASS_ARRAY)
     if p == null {
         JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not an array")

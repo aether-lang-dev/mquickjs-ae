@@ -22,8 +22,8 @@ exports (js_string_compare)
 
 
 // JSString.len = header >> 7
-str_len(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
-min_int(a: int, b: int) -> int { if a < b { return a } return b }
+str_len_(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
+min_int_(a: int, b: int) -> int { if a < b { return a } return b }
 
 // int js_string_compare(JSContext *ctx, JSValue val1, JSValue val2)
 js_string_compare(ctx: ptr, val1: long, val2: long) -> int {
@@ -31,9 +31,9 @@ js_string_compare(ctx: ptr, val1: long, val2: long) -> int {
     buf2 = malloc(24)
     p1 = getpkg.get_string_ptr(ctx, buf1, val1)
     p2 = getpkg.get_string_ptr(ctx, buf2, val2)
-    int len1 = str_len(p1)
-    int len2 = str_len(p2)
-    int len = min_int(len1, len2)
+    int len1 = str_len_(p1)
+    int len2 = str_len_(p2)
+    int len = min_int_(len1, len2)
 
     long b1 = mem.ptr_to_long(p1) + consts.STR_BUF
     long b2 = mem.ptr_to_long(p2) + consts.STR_BUF

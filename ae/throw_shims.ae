@@ -22,6 +22,9 @@ exports (js_throw_prop_access_error, js_throw_global_not_ref, js_tostring_mtag_s
 
 // JSValue js_throw_prop_access_error(JSContext *ctx, int kind, JSValue prop)
 // kind: 0=read/null 1=read/undefined 2=read/value 3=create/null 4=create/undefined 5=create/value
+// @c_callback keeps the bare C symbol: ae.getpkg (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_js_throw_prop_access_error.
+@c_callback
 js_throw_prop_access_error(ctx: ptr, kind: int, prop: long) -> long {
     if kind == 0 { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "cannot read property '%lo' of null", prop) }
     if kind == 1 { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "cannot read property '%lo' of undefined", prop) }

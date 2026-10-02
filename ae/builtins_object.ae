@@ -24,7 +24,7 @@ extern JS_ToString(ctx: ptr, val: long) -> long
 exports (js_object_constructor, js_object_getPrototypeOf, js_object_hasOwnProperty, js_object_setPrototypeOf, js_object_keys, js_object_toString)
 
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
@@ -34,12 +34,12 @@ js_object_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if a <= 0 {
         return JS_NewObject(ctx)
     }
-    return argv_get(argv, 0)
+    return argv_get_(argv, 0)
 }
 
 // JSValue js_object_getPrototypeOf(ctx, this_val, argc, argv)
 js_object_getPrototypeOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    long a0 = argv_get(argv, 0)
+    long a0 = argv_get_(argv, 0)
     if JS_IsObject(ctx, a0) == 0 {
         return JS_ThrowTypeErrorNotAnObject(ctx)
     }
@@ -54,7 +54,7 @@ js_object_hasOwnProperty(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
     if jstag.is_undefined(tv) != 0 { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "cannot convert to object") }
     if JS_IsObject(ctx, tv) == 0 { return jstag.JS_FALSE }
 
-    long prop = JS_ToPropertyKey(ctx, argv_get(argv, 0))
+    long prop = JS_ToPropertyKey(ctx, argv_get_(argv, 0))
     p = jstag.value_to_ptr(tv)
     int cid = (p as *JSObject).class_id
 
@@ -90,11 +90,11 @@ js_object_hasOwnProperty(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
 
 // JSValue js_object_setPrototypeOf(ctx, this_val, argc, argv)
 js_object_setPrototypeOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    long obj = argv_get(argv, 0)
+    long obj = argv_get_(argv, 0)
     if JS_IsObject(ctx, obj) == 0 {
         return JS_ThrowTypeErrorNotAnObject(ctx)
     }
-    long proto = argv_get(argv, 1)
+    long proto = argv_get_(argv, 1)
     if proto != jstag.JS_NULL {
         if JS_IsObject(ctx, proto) == 0 {
             return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a prototype")
@@ -106,16 +106,16 @@ js_object_setPrototypeOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
 }
 
 // --- js_object_keys ------------------------------------------------
-ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-gc_push(ctx: ptr, ref: ptr, v: long) {
-    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top(ctx))
-    ctx_set_top(ctx, ref)
+ctx_top_(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
+ctx_set_top_(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
+gc_push_(ctx: ptr, ref: ptr, v: long) {
+    mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_(ctx))
+    ctx_set_top_(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
 }
-gc_pop(ctx: ptr, ref: ptr) -> long {
+gc_pop_(ctx: ptr, ref: ptr) -> long {
     long v = mem.get_long(ref, consts.GCREF_VAL)
-    ctx_set_top(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
+    ctx_set_top_(ctx, mem.get_ptr(ref, consts.GCREF_PREV))
     return v
 }
 
@@ -130,7 +130,7 @@ ret_store(ret: long, pos: int, str: long) {
 
 // JSValue js_object_keys(ctx, this_val, argc, argv)
 js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    long a0 = argv_get(argv, 0)
+    long a0 = argv_get_(argv, 0)
     if JS_IsObject(ctx, a0) == 0 {
         return JS_ThrowTypeErrorNotAnObject(ctx)
     }
@@ -157,7 +157,7 @@ js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if jstag.is_exception(ret) != 0 { return jstag.JS_EXCEPTION }
 
     ret_ref = malloc(16)
-    gc_push(ctx, ret_ref, ret)
+    gc_push_(ctx, ret_ref, ret)
 
     int pos = 0
     int err = 0
@@ -178,7 +178,7 @@ js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         int j = 0
         while j < prop_count {
             // re-fetch p (may have moved)
-            p = jstag.value_to_ptr(argv_get(argv, 0))
+            p = jstag.value_to_ptr(argv_get_(argv, 0))
             long props2 = mem.get_long(p, consts.JSOBJ_PROPS_OFF)
             arr2 = jstag.value_to_ptr(props2)
             // pr = &arr->arr[2 + hash_mask + 1 + 3*ii]; JSProperty.key @ +0
@@ -197,7 +197,7 @@ js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         }
     }
 
-    long final_ret = gc_pop(ctx, ret_ref)
+    long final_ret = gc_pop_(ctx, ret_ref)
     free(ret_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     // set ret->u.array.len = pos

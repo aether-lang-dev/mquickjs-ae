@@ -6,8 +6,8 @@
 
 import std.mem
 import ae.consts
+import ae.cutils (utf8_get)
 
-extern __utf8_get(p: ptr, plen: ptr) -> int
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 
@@ -69,7 +69,7 @@ string_get_cp(p: ptr) -> int {
     // utf8_get fast path: ascii byte is itself
     if b < 0x80 { return b }
     slot = malloc(8)
-    int c = __utf8_get(lead, slot)
+    int c = utf8_get(lead, slot)
     free(slot)
     return c
 }

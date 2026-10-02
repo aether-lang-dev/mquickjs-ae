@@ -11,8 +11,8 @@ import ae.mqtypes
 import ae.consts
 import ae.getpkg
 import ae.strpos
+import ae.cutils (utf8_get)
 
-extern __utf8_get(p: ptr, plen: ptr) -> int
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 
@@ -20,14 +20,14 @@ exports (string_getcp)
 
 
 // JSString.len = header >> 7
-str_len(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
+str_len_(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
 
-// utf8_get(buf): ASCII fast path inline, else __utf8_get.
+// utf8_get(buf): ASCII fast path inline, else utf8_get.
 utf8_get_at(base: long) -> int {
     int b0 = mem.get_byte(mem.long_to_ptr(base), 0)
     if b0 < 0x80 { return b0 }
     cl = malloc(8)
-    int c = __utf8_get(mem.long_to_ptr(base), cl)
+    int c = utf8_get(mem.long_to_ptr(base), cl)
     free(cl)
     return c
 }
@@ -40,7 +40,7 @@ string_getcp(ctx: ptr, str: long, utf16_pos: int, is_codepoint: int) -> int {
 
     scratch = malloc(24)
     p = getpkg.get_string_ptr(ctx, scratch, str)
-    int plen = str_len(p)
+    int plen = str_len_(p)
     if utf8_pos >= plen { free(scratch)  return 0 - 1 }
 
     long base = mem.ptr_to_long(p) + consts.STR_BUF + utf8_pos

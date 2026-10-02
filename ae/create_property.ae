@@ -25,7 +25,7 @@ cpr_va_size(arr: long) -> int { long h = mem.get_long(mem.long_to_ptr(arr), 0)  
 cpr_hash(prop: long) -> long { long q = prop / 8  long r = prop % 8  return q ^ r }
 
 // read/write arr->arr[i] (8-byte JSValues @ base)
-ag(base: long, i: long) -> long { return mem.get_long(mem.long_to_ptr(base + i * 8), 0) }
+ag_(base: long, i: long) -> long { return mem.get_long(mem.long_to_ptr(base + i * 8), 0) }
 as_(base: long, i: long, v: long) { mem.set_long(mem.long_to_ptr(base + i * 8), 0, v) }
 
 // JSProperty* at arr->arr[idx]
@@ -44,8 +44,8 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
     long arrv = (p as *JSObject).props
     long base = mem.ptr_to_long(jstag.value_to_ptr(arrv)) + consts.VA_ARR
 
-    int prop_count = ag(base, 0) >> 1
-    int hash_mask = ag(base, 1) >> 1
+    int prop_count = ag_(base, 0) >> 1
+    int hash_mask = ag_(base, 1) >> 1
     int size = cpr_va_size(mem.ptr_to_long(jstag.value_to_ptr(arrv)))
 
     int first_free = 0
@@ -132,7 +132,7 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
 
     long h = cpr_hash(prop) & hash_mask
     // pr->hash_next = arr[2+h] (raw 2*idx chain head)
-    long head = ag(base, 2 + h)
+    long head = ag_(base, 2 + h)
     set_hash_next(pr, head)
     as_(base, 2 + h, cpr_short_int(ffl))
     as_(base, 0, cpr_short_int(prop_count + 1))

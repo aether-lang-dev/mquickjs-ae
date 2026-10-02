@@ -23,7 +23,7 @@ const TOK_VAL = 0
 const TOK_VALUE = 16
 
 // is_ident_next(c): letter / _ / $ / digit
-is_ident_next(c: int) -> int {
+is_ident_next_(c: int) -> int {
     if c >= 0x61 { if c <= 0x7a { return 1 } }   // a-z
     if c >= 0x41 { if c <= 0x5a { return 1 } }   // A-Z
     if c == 0x5f { return 1 }                     // _
@@ -58,7 +58,7 @@ js_parse_ident(s: ptr, token: ptr, ppos: ptr, c: int) {
         if pos >= buf_len { looping = 0 }
         else {
             int ch = mem.get_byte(buf, pos)
-            if is_ident_next(ch) == 0 { looping = 0 }
+            if is_ident_next_(ch) == 0 { looping = 0 }
             else {
                 pos = pos + 1
                 if strbuf.string_buffer_putc(ctx, b, ch) != 0 { looping = 0 }

@@ -34,7 +34,7 @@ const JS_TAG_SHORT_FUNC = 19
 fln_mtag(p: ptr) -> int { return (mem.get_long(p, 0) >> 1) & 7 }
 fln_class_id(p: ptr) -> int { return (mem.get_long(p, 0) >> 4) & 0xff }
 // JSFunctionBytecode arg_count = header bits 7..22 (16 bits)
-fb_arg_count(b: ptr) -> int { return (mem.get_long(b, 0) >> 7) & 0xffff }
+fb_arg_count_(b: ptr) -> int { return (mem.get_long(b, 0) >> 7) & 0xffff }
 fln_short_int(v: long) -> long { return v << 1 }
 
 // JSValue js_function_get_length_name1(JSContext *ctx, JSValue *this_val, int is_name, JSFunctionBytecode **pb)
@@ -65,7 +65,7 @@ js_function_get_length_name1(ctx: ptr, this_val: ptr, is_name: int, pb: ptr) -> 
                 if fn == jstag.JS_NULL { ret = js_get_atom(ctx, consts.JS_ATOM_empty) }
                 else { ret = fn }
             } else {
-                ret = fln_short_int(fb_arg_count(b))
+                ret = fln_short_int(fb_arg_count_(b))
             }
             mem.set_ptr(pb, 0, b)
             return ret

@@ -1,6 +1,6 @@
 // C string / UTF-8 utilities — ported from cutils.c. These present
 // the same bare C ABI symbols the engine links against (pstrcpy,
-// __unicode_to_utf8, ...), so deleting cutils.c from the build and
+// unicode_to_utf8, ...), so deleting cutils.c from the build and
 // linking this module's --emit=lib object is a drop-in replacement.
 //
 // All buffer access goes through std.mem since a bare ptr cannot be
@@ -15,7 +15,7 @@ extern memcmp(a: ptr, b: ptr, n: long) -> int
 
 exports (
     pstrcpy, pstrcat, strstart, has_suffix,
-    __unicode_to_utf8, __unicode_from_utf8, __utf8_get
+    unicode_to_utf8, unicode_from_utf8, utf8_get
 )
 
 // void pstrcpy(char *buf, int buf_size, const char *str)
@@ -73,8 +73,8 @@ has_suffix(str: ptr, suffix: ptr) -> int {
     return 0
 }
 
-// size_t __unicode_to_utf8(uint8_t *buf, unsigned int c)
-__unicode_to_utf8(buf: ptr, c: int) -> long {
+// size_t unicode_to_utf8(uint8_t *buf, unsigned int c)
+unicode_to_utf8(buf: ptr, c: int) -> long {
     long cc = c & 0xffffffff
     int qi = 0
     if cc < 0x800 {
@@ -102,8 +102,8 @@ __unicode_to_utf8(buf: ptr, c: int) -> long {
     return qi
 }
 
-// int __unicode_from_utf8(const uint8_t *p, size_t max_len, size_t *plen)
-__unicode_from_utf8(p: ptr, max_len: long, plen: ptr) -> int {
+// int unicode_from_utf8(const uint8_t *p, size_t max_len, size_t *plen)
+unicode_from_utf8(p: ptr, max_len: long, plen: ptr) -> int {
     long len = 1
     int c = mem.get_byte(p, 0)
     int is_fail = 0
@@ -153,8 +153,8 @@ __unicode_from_utf8(p: ptr, max_len: long, plen: ptr) -> int {
     return c
 }
 
-// int __utf8_get(const uint8_t *p, size_t *plen)
-__utf8_get(p: ptr, plen: ptr) -> int {
+// int utf8_get(const uint8_t *p, size_t *plen)
+utf8_get(p: ptr, plen: ptr) -> int {
     long len = 1
     int c = mem.get_byte(p, 0)
     if c < 0xc0 {

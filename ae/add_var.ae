@@ -15,7 +15,7 @@ extern js_parse_error_mem(s: ptr)
 exports (add_var)
 
 
-max_int(a: int, b: int) -> int { if a > b { return a } return b }
+max_int_(a: int, b: int) -> int { if a > b { return a } return b }
 
 // int add_var(JSParseState *s, JSValue name)
 add_var(s: ptr, name: long) -> int {
@@ -26,16 +26,16 @@ add_var(s: ptr, name: long) -> int {
     b = jstag.value_to_ptr(mem.get_long(s, consts.JSPS_CUR_FUNC))
 
     // GC-root name across js_resize_value_array
-    ref = malloc16()
+    ref = malloc16_()
     mem.set_long(ref, 0, name)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
 
-    long new_vars = js_resize_value_array(ctx, mem.get_long(b, consts.FB_VARS), max_int(len + 1, 4))
+    long new_vars = js_resize_value_array(ctx, mem.get_long(b, consts.FB_VARS), max_int_(len + 1, 4))
 
     name = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free16(ref)
+    free16_(ref)
 
     if jstag.is_exception(new_vars) != 0 { js_parse_error_mem(s) }
 
@@ -50,5 +50,5 @@ add_var(s: ptr, name: long) -> int {
 
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
-malloc16() -> ptr { return malloc(16) }
-free16(p: ptr) { free(p) }
+malloc16_() -> ptr { return malloc(16) }
+free16_(p: ptr) { free(p) }

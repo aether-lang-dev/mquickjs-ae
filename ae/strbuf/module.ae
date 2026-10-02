@@ -87,11 +87,11 @@ string_buffer_push(ctx: ptr, s: ptr, len: int) -> int {
 // StringBuffer: buffer_ref{val@0, prev@8}, len@16, is_ascii@20
 
 // JS_NewStringChar(c) = (c<<5)|27
-new_string_char(c: int) -> long { long cl = c & 0xffffffff  return (cl << 5) | jstag.TAG_STRING_CHAR }
+new_string_char_(c: int) -> long { long cl = c & 0xffffffff  return (cl << 5) | jstag.TAG_STRING_CHAR }
 
 // int string_buffer_putc(JSContext *ctx, StringBuffer *s, int c)
 string_buffer_putc(ctx: ptr, s: ptr, c: int) -> int {
-    return sbconcat.string_buffer_concat_str(ctx, s, new_string_char(c))
+    return sbconcat.string_buffer_concat_str(ctx, s, new_string_char_(c))
 }
 
 // JSValue string_buffer_pop(JSContext *ctx, StringBuffer *s)

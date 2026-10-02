@@ -6,14 +6,13 @@ import ae.getpkg
 import ae.jstag
 import ae.mqtypes
 import std.mem
+import ae.cutils (unicode_to_utf8, utf8_get)
 
 extern is_valid_len4_utf8(buf: ptr) -> int
 extern malloc(n: long) -> ptr
 extern free(p: ptr)
 extern js_get_atom(ctx: ptr, a: int) -> long
 extern is_ascii_string(buf: ptr, len: long) -> int
-extern __utf8_get(p: ptr, plen: ptr) -> int
-extern __unicode_to_utf8(buf: ptr, c: int) -> long
 extern memcpy(dst: ptr, src: ptr, n: long) -> ptr
 
 exports (
@@ -175,7 +174,7 @@ js_string_convert_pos(ctx: ptr, val: long, pos: int, pos_type: int) -> int {
 
 // JSString.len = header >> 7 (gc_mark b0, mtag b1-3, is_unique b4,
 // is_ascii b5, is_numeric b6, len b7+).
-str_len(val: long) -> int {
+str_len_(val: long) -> int {
     p = jstag.value_to_ptr(val)
     return mem.get_long(p, 0) >> 7
 }
@@ -189,7 +188,7 @@ js_string_byte_len(ctx: ptr, val: long) -> int {
         if c < 0x10000 { return 3 }
         return 4
     }
-    return str_len(val)
+    return str_len_(val)
 }
 
 // ===== from string_pos.ae =====
@@ -237,7 +236,7 @@ ssu_utf8_get(base: long) -> int {
     int b0 = mem.get_byte(mem.long_to_ptr(base), 0)
     if b0 < 0x80 { return b0 }
     cl = malloc(8)
-    int c = __utf8_get(mem.long_to_ptr(base), cl)
+    int c = utf8_get(mem.long_to_ptr(base), cl)
     free(cl)
     return c
 }
@@ -293,7 +292,7 @@ js_sub_string_utf8(ctx: ptr, val: long, start0: int, end0: int) -> long {
         if start_surrogate != 0 {
             int c = ssu_utf8_get(pbuf + start)
             c = 0xdc00 + ((c - 0x10000) & 0x3ff)   // right surrogate
-            q = q + __unicode_to_utf8(mem.long_to_ptr(q), c)
+            q = q + unicode_to_utf8(mem.long_to_ptr(q), c)
             start = start + 4
         }
         memcpy(mem.long_to_ptr(q), mem.long_to_ptr(pbuf + start), end - start)
@@ -301,7 +300,7 @@ js_sub_string_utf8(ctx: ptr, val: long, start0: int, end0: int) -> long {
         if end_surrogate != 0 {
             int c = ssu_utf8_get(pbuf + end)
             c = 0xd800 + ((c - 0x10000) >> 10)     // left surrogate
-            q = q + __unicode_to_utf8(mem.long_to_ptr(q), c)
+            q = q + unicode_to_utf8(mem.long_to_ptr(q), c)
         }
     } else {
         int ia = scs_is_ascii_of(p1)

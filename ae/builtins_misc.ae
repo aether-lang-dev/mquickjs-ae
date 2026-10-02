@@ -23,7 +23,7 @@ exports (
 
 
 // isnan: exponent all-ones and mantissa nonzero (math.h isnan is a macro)
-f_isnan(d: float) -> int {
+f_isnan_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK {
         if (bits & consts.MANT_MASK) != 0 { return 1 }
@@ -32,46 +32,46 @@ f_isnan(d: float) -> int {
 }
 
 // isfinite: exponent not all-ones
-f_isfinite(d: float) -> int {
+f_isfinite_(d: float) -> int {
     long bits = mem.bits_of_float(d)
     if (bits & consts.EXP_MASK) == consts.EXP_MASK { return 0 }
     return 1
 }
 
-argv_get(argv: ptr, i: int) -> long {
+argv_get_(argv: ptr, i: int) -> long {
     return mem.get_long(argv, i * 8)
 }
 
 // JSValue js_array_isArray(ctx, this_val, argc, argv)
 js_array_isArray(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    int r = ptrhelp.JS_IsArray(ctx, argv_get(argv, 0))
+    int r = ptrhelp.JS_IsArray(ctx, argv_get_(argv, 0))
     return jstag.new_bool(r)
 }
 
 // JSValue js_global_isNaN(ctx, this_val, argc, argv)
 js_global_isNaN(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     slot = malloc(8)
-    int err = JS_ToNumber(ctx, slot, argv_get(argv, 0))
+    int err = JS_ToNumber(ctx, slot, argv_get_(argv, 0))
     if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     free(slot)
-    return jstag.new_bool(f_isnan(d))
+    return jstag.new_bool(f_isnan_(d))
 }
 
 // JSValue js_global_isFinite(ctx, this_val, argc, argv)
 js_global_isFinite(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     slot = malloc(8)
-    int err = JS_ToNumber(ctx, slot, argv_get(argv, 0))
+    int err = JS_ToNumber(ctx, slot, argv_get_(argv, 0))
     if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     free(slot)
-    return jstag.new_bool(f_isfinite(d))
+    return jstag.new_bool(f_isfinite_(d))
 }
 
 // JSValue js_math_clz32(ctx, this_val, argc, argv)
 js_math_clz32(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     slot = malloc(8)
-    int err = JS_ToUint32(ctx, slot, argv_get(argv, 0))
+    int err = JS_ToUint32(ctx, slot, argv_get_(argv, 0))
     if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
     long a = mem.get_uint32(slot, 0) & 0xffffffff
     free(slot)
@@ -83,10 +83,10 @@ js_math_clz32(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 // JSValue js_math_imul(ctx, this_val, argc, argv) — 32-bit wraparound mul
 js_math_imul(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     slot = malloc(8)
-    int erra = JS_ToInt32(ctx, slot, argv_get(argv, 0))
+    int erra = JS_ToInt32(ctx, slot, argv_get_(argv, 0))
     if erra != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int a = mem.get_int(slot, 0)
-    int errb = JS_ToInt32(ctx, slot, argv_get(argv, 1))
+    int errb = JS_ToInt32(ctx, slot, argv_get_(argv, 1))
     if errb != 0 { free(slot)  return jstag.JS_EXCEPTION }
     int b = mem.get_int(slot, 0)
     free(slot)

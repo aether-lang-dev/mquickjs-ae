@@ -46,6 +46,9 @@ size_log2_of(class_id: int) -> int {
 }
 
 // BOOL JS_IsObject(JSContext *ctx, JSValue val)
+// @c_callback keeps the bare C symbol: ae.ops (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_JS_IsObject.
+@c_callback
 JS_IsObject(ctx: ptr, val: long) -> int {
     if jstag.is_ptr(val) == 0 { return 0 }
     p = jstag.value_to_ptr(val)
@@ -54,6 +57,9 @@ JS_IsObject(ctx: ptr, val: long) -> int {
 }
 
 // JSObject *js_get_object_class(JSContext *ctx, JSValue val, int class_id)
+// @c_callback keeps the bare C symbol: ae.ptrhelp (in this file's import closure) forward-declares
+// it with `extern` to break an import cycle, which otherwise renames this to ae_js_get_object_class.
+@c_callback
 js_get_object_class(ctx: ptr, val: long, class_id: int) -> ptr {
     if jstag.is_ptr(val) == 0 { return null }
     p = jstag.value_to_ptr(val)
@@ -195,6 +201,8 @@ js_typed_array_base_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -
 }
 
 // JSValue js_typed_array_constructor(ctx, this_val, argc, argv, magic)
+// @c_callback keeps the bare C symbol: called from the generated mqjs_stdlib.h ROM table.
+@c_callback
 js_typed_array_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> long {
     if (argc & consts.FRAME_CF_CTOR) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "must be called with new")
