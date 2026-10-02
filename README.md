@@ -1,26 +1,52 @@
-MicroQuickJS
-============
+MicroQuickJS for Aether
+=======================
 
-## Introduction
+A port of Fabrice Bellard and Charlie Gordon's
+[MicroQuickJS](https://github.com/bellard/mquickjs) (MQuickJS) JavaScript
+engine to the [Aether](https://github.com/aether-lang-dev/aether) programming
+language.
 
-MicroQuickJS (aka. MQuickJS) is a JavaScript engine targeted at
-embedded systems. It compiles and runs JavaScript programs using as little
-as 10 kB of RAM. The whole engine requires about 100 kB of ROM (ARM
-Thumb-2 code) including the C library. The speed is comparable to
-QuickJS.
+MQuickJS is a JavaScript engine for embedded systems: it runs programs in as
+little as 10 kB of RAM, supports a [stricter subset](#the-javascript-dialect)
+of JavaScript close to ES5, and uses a compacting tracing GC, a VM that does
+not use the CPU stack, and UTF-8 strings. In this repository the ~18,000-line
+C engine (`mquickjs.c`) has been rewritten in Aether: the parser, compiler,
+bytecode VM, GC, regexp engine and the whole standard library are Aether
+modules under `ae/`. The engine keeps upstream's design, bytecode format and
+C API, so C embedders can use it as before.
 
-MQuickJS only supports a [subset](#javascript-subset-reference) of JavaScript close to ES5. It
-implements a **stricter mode** where some error prone or inefficient
-JavaScript constructs are forbidden.
+Maintained by Paul Hammant, Nic and Claude. Contributor and agent notes are
+in [AGENTS.md](AGENTS.md).
 
-Although MQuickJS shares much code with QuickJS, it internals are
-different in order to consume less memory. In particular, it relies on
-a tracing garbage collector, the VM does not use the CPU stack and
-strings are stored in UTF-8.
+## Status
 
-## REPL
+| | |
+|---|---|
+| **Correctness** | Output identical to upstream C (`7ea5399`, Bellard's last commit before the port) across the differential corpus: ~76k lines of generated number formatting/parsing and Math cases, the conformance suites and error paths (`scripts/diff-upstream.sh`, 23/23). Bellard's own `dtoa_test` (Gay vectors), `libm_test` and `rem_pio2` checks pass against this tree's `dtoa.c`/`libm.c`. All of the Octane benchmark runs with correct results. |
+| **Memory safety** | valgrind-clean (`run-valgrind.sh`); an ASAN mutation fuzzer (`scripts/fuzz.sh`) runs in CI. |
+| **Speed** | Slower than upstream C today: about **4.5×** on Octane's overall score and about **7×** on the microbench geometric mean (individual benchmarks range from 1.5× to 11×). The main cause is known: opcode dispatch is a chain of comparisons rather than a jump table. Track it with `scripts/bench.sh`. |
+| **Size** | The `-Os` binary's code is about 4.5× larger than upstream C's. |
+| **Remaining C** | `dtoa.c` and `libm.c` (third-party numerics), `mqjs.c` and `readline_tty.c` (CLI glue), `example.c` (C embedding demo), `mquickjs_build.c` (generator glue). |
 
-The REPL is `mqjs`. Usage:
+Fixes this port carries over upstream: GC finalizers now run for every
+dead object (upstream skips all but the first of each run of adjacent dead
+objects, leaking embedders' C data).
+
+## Building
+
+You need an Aether source tree (the engine builds against a dev checkout;
+see `ci-pins` for the validated version, currently `v0.760.0`) and
+[aeb](https://github.com/aether-lang-dev/aeb), the build runner, with
+Aether 0.758 or later on `PATH`.
+
+```sh
+export MQJS_AETHER_HOME=/path/to/aether   # default: /home/paul/scm/aether
+aeb .build.ae                 # builds target/build/bin/mqjs
+aeb example-app/.build.ae     # builds the C embedding demo
+aeb .tests.ae                 # builds both and runs the conformance gate
+```
+
+## The `mqjs` command
 
 ```
 usage: mqjs [options] [file [args]]
@@ -39,164 +65,58 @@ usage: mqjs [options] [file [args]]
 Compile and run a program using 10 kB of RAM:
 
 ```sh
-./mqjs --memory-limit 10k tests/mandelbrot.js
+target/build/bin/mqjs --memory-limit 10k tests/mandelbrot.js
 ```
 
-
-In addition to normal script execution, `mqjs` can output the compiled
-bytecode to a persistent storage (file or ROM):
+`mqjs` can save the compiled bytecode to persistent storage (a file or ROM)
+and run it later:
 
 ```sh
-./mqjs -o mandelbrot.bin tests/mandelbrot.js
+target/build/bin/mqjs -o mandelbrot.bin tests/mandelbrot.js
+target/build/bin/mqjs -b mandelbrot.bin
 ```
 
-Then you can run the compiled bytecode as a normal script:
+The bytecode format depends on the endianness and word length of the CPU.
+On a 64-bit CPU, `-m32` generates 32-bit bytecode for an embedded 32-bit
+system. `--no-column` drops column numbers from the debug info (line numbers
+remain) to save storage.
 
-```sh
-./mqjs -b mandelbrot.bin
+## Using the engine from Aether
+
+`ae/quickjs` is the Aether-facing API: create an engine over its own heap,
+evaluate source, and inspect results without touching the internal
+`JS_*` symbols.
+
+```aether
+import ae.quickjs
+
+quickjs.with_engine(stdlib_ptr, 4 * 1024 * 1024) |eng| {
+    r = quickjs.eval(eng, "40 + 2")
+    println(quickjs.result_int(eng, r))      // 42
+}
 ```
 
-The bytecode format depends on the endianness and word length (32 or
-64 bit) of the CPU. On a 64 bit CPU, it is possible to use the option
-`-m32` to generate 32 bit bytecode that can run on an embedded 32 bit
-system.
+The standard library is baked at build time into a ROM table, so the host
+passes its address (`stdlib_ptr`, for example `mqjs`'s `js_stdlib`). The
+standard library itself is declared in Aether (`gen/genengine`) and turned
+into `mqjs_stdlib.h` by the generator node in `gen/`.
 
-Use the option `--no-column` to remove the column number debug info
-(only line numbers are remaining) if you want to save some storage.
+**This path is the least finished part of the port.** The facade is not yet
+built or tested as a standalone Aether library: its example
+(`ae/quickjs/example_embed.ae`) is not compiled by any build node.
+`mqjs --dsl-demo` shows the related declarative launch DSL (`ae/mqjs_dsl`).
 
-## Stricter mode
+## Using the engine from C
 
-MQuickJS only supports a subset of JavaScript (mostly ES5). It is
-always in **stricter** mode where some error prone JavaScript features
-are disabled. The general idea is that the stricter mode is a subset
-of JavaScript, so it still works as usual in other JavaScript
-engines. Here are the main points:
-
-- Only **strict mode** constructs are allowed, hence no `with` keyword
-  and global variables must be declared with the `var` keyword.
-
-- Arrays cannot have holes. Writing an element after the end is not
-  allowed:
-```js
-    a = []
-    a[0] = 1; // OK to extend the array length
-    a[10] = 2; // TypeError
-```
-  If you need an array like object with holes, use a normal object
-  instead:
-```js
-    a = {}
-    a[0] = 1;
-    a[10] = 2;
-```
-  `new Array(len)` still works as expected, but the array elements are
-  initialized to `undefined`.
-  Array literals with holes are a syntax error:
-```js
-    [ 1, , 3 ] // SyntaxError
-```
-- Only global `eval` is supported so it cannot access to nor modify
-  local variables:
-```js
-    eval('1 + 2'); // forbidden
-    (1, eval)('1 + 2'); // OK
-```
-- No value boxing: `new Number(1)` is not supported and never
-  necessary.
-
-## JavaScript Subset Reference
- 
-- Only strict mode is supported with emphasis on ES5 compatibility.
-
-- `Array` objects:
-
-    - They have no holes.
-    
-    - Numeric properties are always handled by the array object and not
-      forwarded to its prototype.
-  
-    - Out-of-bound sets are an error except when they are at the end of
-      the array.
-      
-    - The `length` property is a getter/setter in the array prototype.
-
-- all properties are writable, enumerable and configurable.
-
-- `for in` only iterates over the object own properties. It should be
-  used with this common pattern to have a consistent behavior with
-  standard JavaScript:
-  
-```js
-    for(var prop in obj) {
-        if (obj.hasOwnProperty(prop)) {
-            ...
-        }
-    }
-```    
-Always prefer using `for of` instead which is supported with arrays:
-
-```js
-    for(var prop of Object.keys(obj)) {
-        ...
-    }
-```
-
-- `prototype`, `length` and `name` are getter/setter in function objects.
-
-- C functions cannot have their own properties (but C constructors
-  behave as expected).
-
-- The global object is supported, but its use is discouraged. It
-  cannot contain getter/setters and properties directly created in it
-  are not visible as global variables in the executing script.
-
-- The variable associated with the `catch` keyword is a normal
-  variable.
-
-- Direct `eval` is not supported. Only indirect (=global) `eval` is
-  supported.
-
-- No value boxing (e.g. `new Number(1)` is not supported)
-
-- Regexp:
-
-    - case folding only works with ASCII characters.
-
-    - the matching is unicode only i.e. `/./` matches a unicode code
-      point instead of an UTF-16 character as with the `u` flag.
-
-- String: `toLowerCase` / `toUpperCase` only handle ASCII characters.
-
-- Date: only `Date.now()` is supported.
-
-ES5 extensions:
-  
-- `for of` is supported but iterates only over arrays. No custom
-   iterator is supported (yet).
-
-- Typed arrays.
-
-- `\u{hex}` is accepted in string literals
-
-- Math functions: `imul`, `clz32`, `fround`, `trunc`, `log2`, `log10`.
-
-- The exponentiation operator
-
-- Regexp: the dotall (`s`), sticky (`y`) and unicode (`u`) flags are
-  accepted. In unicode mode, the unicode properties are not supported.
-
-- String functions: `codePointAt`, `replaceAll`, `trimStart`, `trimEnd`.
-
-- The `globalThis` global property.
-
-## C API
+The C API is upstream's (see `mquickjs.h`), and `example.c` is a complete
+example with a custom `Rectangle` class.
 
 ### Engine initialization
 
-MQuickJS has almost no dependency on the C library. In particular it
-does not use `malloc()`, `free()` nor `printf()`. When creating a
-MQuickJS context, a memory buffer must be provided. The engine only
-allocates memory in this buffer:
+MQuickJS has almost no dependency on the C library. In particular it does not
+use `malloc()`, `free()` or `printf()` itself. When creating a context you
+provide a memory buffer, and the engine allocates only inside it:
+
 ```c
     JSContext *ctx;
     uint8_t mem_buf[8192];
@@ -204,25 +124,22 @@ allocates memory in this buffer:
     ...
     JS_FreeContext(ctx);
 ```
-`JS_FreeContext(ctx)` is only necessary to call the finalizers of user
-objects as no system memory is allocated by the engine.
+
+`JS_FreeContext(ctx)` is only needed to call the finalizers of user objects,
+as the engine allocates no system memory.
 
 ### Memory handling
 
-The C API is very similar to QuickJS (see `mquickjs.h`). However,
-since there is a compacting garbage collector, there are important
-differences:
+The C API is very similar to QuickJS's, but because the garbage collector
+compacts, there are important differences:
 
-1. Explicitly freeing values is not necessary (no `JS_FreeValue()`).
+1. Explicitly freeing values is not necessary (there is no `JS_FreeValue()`).
 
-2. The address of objects can move each time a JS allocation is
-called. The general rule is to avoid having variables of type
-`JSValue` in C. They may be present only for temporary use between
-MQuickJS API calls. In the other cases, always use a pointer to a
-`JSValue`. `JS_PushGCRef()` returns a pointer to a temporary opaque
-`JSValue` stored in a `JSGCRef` variable. `JS_PopGCRef()` must be used
-to release the temporary reference. The opaque value in `JSGCRef` is
-automatically updated when objects move. Example:
+2. Objects can move whenever a JS allocation happens. Avoid keeping `JSValue`
+   variables in C except briefly between API calls; otherwise use a pointer
+   to a `JSValue`. `JS_PushGCRef()` returns a pointer to a temporary opaque
+   `JSValue` stored in a `JSGCRef` variable, which the GC updates when
+   objects move; `JS_PopGCRef()` releases it:
 
 ```c
 JSValue my_js_func(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
@@ -248,132 +165,145 @@ JSValue my_js_func(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 }
 ```
 
-When running on a PC, the `DEBUG_GC` define can be used to force the
-JS allocator to always move objects at each allocation. It is a good
-way to check no invalid JSValue is used.
-
 ### Standard library
 
-The standard library is compiled by a custom tool (`mquickjs_build.c`)
-to C structures that may reside in ROM. Hence the standard library
-instantiation is very fast and requires almost no RAM. An example of
-standard library for `mqjs` is provided in `mqjs_stdlib.c`. The result
-of its compilation is `mqjs_stdlib.h`.
-
-`example.c` is a complete example using the MQuickJS C API.
+The standard library is compiled at build time into C structures that may
+reside in ROM, so instantiating it is very fast and needs almost no RAM. In
+this port the library is declared in Aether (`gen/genengine/module.ae`) and
+the `gen/` node emits `mquickjs_atom.h` and `mqjs_stdlib.h`; `example-app/gen/`
+does the same for the demo's `example_stdlib.h`.
 
 ### Persistent bytecode
 
-The bytecode generated by `mqjs` may be executed from ROM. In this
-case, it must be relocated before being flashed into ROM (see
-`JS_RelocateBytecode()`). It is then instantiated with
-`JS_LoadBytecode()` and run as normal script with `JS_Run()` (see
-`mqjs.c`).
+Bytecode generated by `mqjs` can execute from ROM. Relocate it before
+flashing (`JS_RelocateBytecode()`), instantiate it with `JS_LoadBytecode()`
+and run it with `JS_Run()`. As with QuickJS, there is no bytecode
+compatibility guarantee across versions, and bytecode is not verified before
+execution: only run bytecode from trusted sources.
 
-As with QuickJS, no backward compatibility is guaranteed at the
-bytecode level. Moreover, the bytecode is not verified before being
-executed. Only run JavaScript bytecode from trusted sources.
+### Math library and floating-point emulation
 
-### Mathematical library and floating point emulation
+MQuickJS has its own small math library (`libm.c`), so results are identical
+on every platform, and its own floating-point emulator for CPUs without an
+FPU.
 
-MQuickJS contains its own tiny mathematical library (in
-`libm.c`). Moreover, in case the CPU has no floating point support, it
-contains its own floating point emulator which may be smaller than the
-one provided with the GCC toolchain.
+## The JavaScript dialect
 
-## Internals and comparison with QuickJS
+### Stricter mode
+
+MQuickJS supports a subset of JavaScript (mostly ES5) and is always in a
+**stricter** mode where some error-prone features are disabled. The stricter
+mode is a subset of JavaScript, so code written for it runs unchanged in
+other engines.
+
+- Only **strict mode** constructs are allowed: no `with`, and global
+  variables must be declared with `var`.
+- Arrays cannot have holes. Writing past the end is an error, except
+  appending at exactly `length`:
+```js
+    a = []
+    a[0] = 1;  // OK, extends the array
+    a[10] = 2; // TypeError
+```
+  Use a plain object for sparse data. `new Array(len)` works, with elements
+  initialized to `undefined`. Array literals with holes (`[1, , 3]`) are a
+  SyntaxError.
+- Only global (indirect) `eval` is supported, so it cannot see or modify
+  local variables: `eval('1 + 2')` is forbidden, `(1, eval)('1 + 2')` is OK.
+- No value boxing: `new Number(1)` is not supported (and never necessary).
+
+### Subset reference
+
+- Only strict mode, with emphasis on ES5 compatibility.
+- `Array` objects have no holes; numeric properties are always handled by the
+  array itself (never forwarded to the prototype); out-of-bound sets are an
+  error except at the end; `length` is a getter/setter on the prototype.
+- All properties are writable, enumerable and configurable.
+- `for in` iterates only over the object's own properties. Prefer `for of`
+  over `Object.keys(obj)`.
+- `prototype`, `length` and `name` are getter/setters on function objects.
+- C functions cannot have their own properties (C constructors behave as
+  expected).
+- The global object is supported but discouraged: it cannot hold
+  getter/setters, and properties created directly on it are not visible as
+  global variables.
+- The `catch` variable is a normal variable.
+- Regexp: case folding is ASCII-only, and matching is by Unicode code point
+  (`/./` matches a code point, as with the `u` flag).
+- `String.prototype.toLowerCase` / `toUpperCase` handle ASCII only.
+- `Date`: only `Date.now()`.
+
+Beyond ES5: `for of` over arrays (no custom iterators yet), typed arrays,
+`\u{hex}` in string literals, `Math.imul`/`clz32`/`fround`/`trunc`/`log2`/`log10`,
+the `**` operator, regexp `s`/`y`/`u` flags (without Unicode properties),
+`codePointAt`, `replaceAll`, `trimStart`, `trimEnd`, and `globalThis`.
+
+## Internals
 
 ### Garbage collection
 
-A tracing and compacting garbage collector is used instead of
-reference counting. It allows smaller objects. The GC adds an overhead
-of a few bits per allocated memory block. Moreover, memory
-fragmentation is avoided.
+A tracing, compacting garbage collector replaces QuickJS's reference
+counting. It allows smaller objects (a few bits of overhead per block) and
+avoids fragmentation. The engine has its own allocator and does not use the
+C library's `malloc`.
 
-The engine has its own memory allocator and does not depend on the C
-library malloc.
+### Values and objects
 
-### Value and object representation
+A value is one CPU word (32 bits on a 32-bit CPU) and holds a 31-bit integer
+(1-bit tag), a single Unicode code point, a 64-bit float with a small
+exponent (64-bit CPUs only), or a pointer to a tagged memory block.
 
-The value has the same size as a CPU word (hence 32 bits on a 32 bit
-CPU). A value may contain:
+Objects take at least 3 words (12 bytes on a 32-bit CPU) plus class-specific
+data. Properties live in a hash table, at least 3 words each, and standard
+library properties may reside in ROM. Property keys are JSValues: a string or
+a non-negative 31-bit integer, with string keys interned.
 
-  - a 31 bit integer (1 bit tag)
+Strings are stored as WTF-8 (UTF-8 plus unpaired surrogates) rather than 8-
+or 16-bit arrays. Surrogate pairs are not stored explicitly but are visible
+when iterating 16-bit code units, keeping full compatibility with both
+JavaScript and UTF-8. C functions can be stored as a single value; most
+standard library functions are stored this way.
 
-  - a single unicode codepoint (hence a string of one or two 16 bit code units)
+### Bytecode and compiler
 
-  - a 64 bit floating point number with a small exponent with 64 bit CPU words
-
-  - a pointer to a memory block. Memory blocks have a tag stored in
-    memory.
-
-JavaScript objects require at least 3 CPU words (hence 12 bytes on a
-32 bit CPU). Additional data may be allocated depending on the object
-class. The properties are stored in a hash table. Each property
-requires at least 3 CPU words. Properties may reside in ROM for
-standard library objects.
-
-Property keys are JSValues unlike QuickJS where they have a specific
-type. They are either a string or a positive 31 bit integer. String
-property keys are internalized (unique).
-
-Strings are internally stored in WTF-8 (UTF-8 + unpaired surrogates)
-instead of 8 or 16 bit arrays in QuickJS. Surrogate pairs are not
-stored explicitly but are still visible when iterating thru 16 bit
-code units in JavaScript. Hence full compatibility with JavaScript and
-UTF-8 is maintained.
-
-C Functions can be stored as a single value to reduce the overhead. In
-this case, no additional properties can be added. Most standard
-library functions are stored this way.
-
-### Standard library
-
-The whole standard library resides in ROM. It is generated at compile
-time. Only a few objects are created in RAM. Hence the engine
-instantiation time is very low.
-
-### Bytecode
-
-It is a stack based bytecode (similar to QuickJS). However, the
-bytecode references atoms thru an indirect table.
-
-Line and column number information is compressed with 
+A stack-based bytecode similar to QuickJS's, referencing atoms through an
+indirect table, with line/column information compressed using
 [exponential-Golomb codes](https://en.wikipedia.org/wiki/Exponential-Golomb_coding).
+The parser is close to QuickJS's but avoids recursion, so stack use is
+bounded. There is no AST: bytecode is generated in one pass.
 
-### Compilation
+### The Aether port
 
-The parser is very close to the QuickJS one but it avoids recursion so
-the C stack usage is bounded. There is no abstract syntax tree. The
-bytecode is generated in one pass with several tricks to optimize it
-(QuickJS has several optimization passes).
+- `ae/*.ae` are leaf translation units; `ae/<pkg>/module.ae` are import-only
+  libraries (`ae/mqtypes` holds the struct overlays, `ae/gc`, `ae/coerce`,
+  `ae/props`, …). `gen/mqjssources` lists the engine's source set.
+- C structs are mirrored as Aether `extern struct` overlays (with bitfields,
+  class-id-selected unions and `bitstruct` flag words), checked against the
+  C layout by `ae/layout_guard.c`.
+- `AGENTS.md` describes the idioms, the build, and the rules for changes.
 
 ## Tests and benchmarks
 
-This port builds with [aeb](https://github.com/aether-lang-dev/aeb) against
-an [Aether](https://github.com/aether-lang-dev/aether) tree; see `AGENTS.md`.
-
 ```sh
-aeb .tests.ae               # conformance gate (JS suites, low memory, REPL, embedding)
+aeb .tests.ae               # conformance gate: JS suites, low memory (10k/32k heaps),
+                            #   GC relocation, bytecode round-trip, REPL, embedding
 ./run-ae-tests.sh           # Aether unit tests (tests/ae)
 ./run-valgrind.sh           # memcheck of the built binaries
-scripts/diff-upstream.sh    # differential test vs upstream C mquickjs + dtoa/libm tests
+scripts/diff-upstream.sh    # differential test vs upstream C + Bellard's dtoa/libm tests
 scripts/fuzz.sh             # ASAN mutation fuzzer (parser, regexp, numbers, VM)
-scripts/bench.sh            # microbench vs upstream C (--octane for Octane)
+scripts/bench.sh            # microbench vs upstream C; --octane for Octane
 ```
 
-The QuickJS micro benchmark on its own: `target/build/bin/mqjs tests/microbench.js`.
-
-Additional tests and a patched version of the Octane benchmark running
-in stricter mode can be downloaded
-[here](https://bellard.org/mquickjs/mquickjs-extras.tar.xz);
-`scripts/diff-upstream.sh` and `scripts/bench.sh --octane` fetch and verify it
-into `target/extras` automatically.
+`scripts/` builds upstream C (or any earlier commit) in a git worktree under
+`target/ref/`. Bellard's [extras](https://bellard.org/mquickjs/mquickjs-extras.tar.xz)
+(Octane and the dtoa/libm test drivers) are downloaded on demand into
+`target/extras`, checksum-verified. CI (`.github/workflows/ci.yml`) runs all
+of the above except the benchmark, against the Aether and aeb versions in
+`ci-pins`.
 
 ## License
 
-MQuickJS is released under the MIT license.
-
-Unless otherwise specified, the MQuickJS sources are copyright Fabrice
-Bellard and Charlie Gordon.
-
+MIT, see [LICENSE](LICENSE). MQuickJS is copyright Fabrice Bellard and
+Charlie Gordon; portions of this port are copyright Paul Hammant. `libm.c`
+includes code from Sun Microsystems' fdlibm under its own permissive notice,
+preserved in the file.

@@ -98,12 +98,24 @@ and the microbench are what exercise the GC itself.
 
 `.tests.ae` is the gate. A change is done when it passes. It runs:
 
-- `test_closure`, `test_language`, `test_loop` and `test_builtin`
+- The JS suites: `test_closure`, `test_language`, `test_loop`, `test_builtin`
+- Regression tests: `test_gc_relocation` (compacting GC under load),
+  `test_rom_write`, `test_regexp_vs_div`, `test_tagged_int`
+- Tiny heaps: mandelbrot at `--memory-limit 10k`, and `test_low_memory` at
+  32k (OOM must be a catchable error, and the engine must recover)
 - A bytecode write and read-back (`-o test_builtin.bin`, then
   `-b test_builtin.bin`)
 - `--dsl-demo`
-- The embedding check (`example-app` running `tests/test_rect.js`)
+- The embedding checks (`example-app` running `tests/test_rect.js` and
+  `tests/test_rect_more.js`)
+- The REPL line editor (`tests/test_readline.sh`, via `bash.test`)
 
+(aeb's summary line counts only the last test block, so it says `1/1`. The
+per-run results are in `target/.aeb/logs/tests_..log`, and a failing run
+still fails the gate.)
+
+For changes to the engine's semantics, also keep `scripts/diff-upstream.sh`
+at 100% identical, and run `./run-valgrind.sh` after allocation/GC changes.
 Also keep the `tests/ae` unit suites green. If you touch a struct overlay,
 `ae/layout_guard.c` must still compile.
 
@@ -177,10 +189,26 @@ alter them. That is how the N3 generator port was verified.
 
 ## Current state (2026-10-02)
 
-- **Validated end to end on Aether 0.760.0** with aeb at v0.324+ (`588f364`, `b0cc057`):
-  - The `.tests.ae` gate is 8/8: the four JS suites, the bytecode
-    round-trip, the DSL demo and the embedding check.
-  - `run-ae-tests.sh` passes 10/10 suites (51 tests) on `std.spec`.
+- **Validated end to end on Aether 0.760.0** with aeb at `b0cc057` (the
+  versions in `ci-pins`). The gate, `run-ae-tests.sh` (16 suites),
+  `run-valgrind.sh` and `scripts/diff-upstream.sh` (23/23 identical to
+  `7ea5399`) all pass. Octane runs with correct results throughout. The ASAN
+  fuzzer has run 9,000 cases with no crashes.
+- **Performance is the open item.** The port runs about 4.5× slower than
+  upstream C on Octane and about 7× on the microbench. Opcode dispatch in
+  `ae/vm.ae` is a linear `if opcode == …` chain (~124 compares), not a
+  jump table, and that is the main lever. Measure with `scripts/bench.sh`.
+- **Bugs found by the new harnesses and fixed (October 2026):**
+  - VM: missing b/pc reloads after GC-capable calls.
+  - Tokenizer: buffer overread.
+  - put_field: wrote ROM properties in place.
+  - Short-int decode: shifted 64-bit, so computed negatives broke typed
+    arrays and coercion.
+  - Negative array indices: read and wrote out of bounds.
+  - TOK_DEC/TOK_INC were wrong.
+  - ReferenceError dropped the variable name.
+  - GC finalizers were skipped for merged dead blocks. This one is an
+    upstream bug; report it to Bellard.
 - What the 0.417 → 0.760 upgrade changed:
   - The build nodes use the `bldr` grammar. `aether_root()` reads
     `MQJS_AETHER_HOME`, not `AETHER_HOME`, because `AETHER_HOME` names the
