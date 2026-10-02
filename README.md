@@ -350,24 +350,25 @@ bytecode is generated in one pass with several tricks to optimize it
 
 ## Tests and benchmarks
 
-Running the basic tests:
+This port builds with [aeb](https://github.com/aether-lang-dev/aeb) against
+an [Aether](https://github.com/aether-lang-dev/aether) tree; see `AGENTS.md`.
+
 ```sh
-make test
+aeb .tests.ae               # conformance gate (JS suites, low memory, REPL, embedding)
+./run-ae-tests.sh           # Aether unit tests (tests/ae)
+./run-valgrind.sh           # memcheck of the built binaries
+scripts/diff-upstream.sh    # differential test vs upstream C mquickjs + dtoa/libm tests
+scripts/fuzz.sh             # ASAN mutation fuzzer (parser, regexp, numbers, VM)
+scripts/bench.sh            # microbench vs upstream C (--octane for Octane)
 ```
 
-Running the QuickJS micro benchmark:
-```sh
-make microbench
-```
+The QuickJS micro benchmark on its own: `target/build/bin/mqjs tests/microbench.js`.
 
 Additional tests and a patched version of the Octane benchmark running
 in stricter mode can be downloaded
-[here](https://bellard.org/mquickjs/mquickjs-extras.tar.xz):
-
-Running the V8 octane benchmark:
-```sh
-make octane
-```
+[here](https://bellard.org/mquickjs/mquickjs-extras.tar.xz);
+`scripts/diff-upstream.sh` and `scripts/bench.sh --octane` fetch and verify it
+into `target/extras` automatically.
 
 ## License
 

@@ -22,7 +22,6 @@ Background reading:
 
 - **`migration_assessment.md`** is the porting guide, idioms included. It is
   the best single doc.
-- **`porting_report.md`** gives the status and a breakdown of the remaining C.
 - **`reminaing_c_code_plan.md`** holds scratch working notes. Some of it is
   stale; trust `git log` over it.
 
@@ -42,7 +41,9 @@ Background reading:
 | `example-app/` | The embedding-demo program node and its own `gen/` (`example_stdlib.h`) |
 | `tests/*.js` | JS conformance suites. They check themselves and `exit(1)` on a mismatch |
 | `tests/ae/test_*.ae` | Unit tests for pure-Aether leaf logic (tag math, UTF-8, pc2line, …) |
-| `Makefile` | Bellard's original C Makefile. **Not** the build of record |
+| `tests/diff/*.js` | Generated corpora for the differential test (numbers, Math) |
+| `scripts/` | `bench.sh`, `diff-upstream.sh`, `fuzz.sh` and shared `lib.sh` (worktree builds of any commit, extras download) |
+| `ci-pins` | Aether tag and aeb commit that CI (`.github/workflows/ci.yml`) builds |
 
 ## Build and test
 
@@ -51,7 +52,25 @@ aeb .build.ae          # builds ./mqjs (depends on gen/)
 aeb .tests.ae          # the conformance gate (builds both programs first)
 ./run-ae-tests.sh      # unit tests in tests/ae (std.spec)
 ./run-valgrind.sh      # memcheck of the built binaries (~2 min)
+scripts/diff-upstream.sh   # same output as upstream C? + Bellard's dtoa/libm tests
+scripts/fuzz.sh            # ASAN mutation fuzzer (-n cases, -s seed)
+scripts/bench.sh           # microbench vs upstream C (--ref <commit>, --octane)
 ```
+
+**The upstream baseline is `7ea5399`**, Bellard's last C commit before the
+port (`UPSTREAM_REF` in `scripts/lib.sh`), not the initial release `ebae6ce`:
+the repo carries his later fixes, and comparisons against `ebae6ce` show
+false differences. `build_ref` in `scripts/lib.sh` builds any commit in a git
+worktree under `target/ref/<sha>`: upstream C commits with their own
+Makefile, port commits with aeb. `scripts/diff-upstream.sh` must stay 100%
+identical; any new divergence needs either a fix or a `SKIP` entry with a
+reason. Bellard's extras (Octane, dtoa/libm test drivers) are downloaded on
+demand, checksum-pinned, into `target/extras`; they are not vendored.
+
+When checking that a regression test fails without its fix, build the pre-fix
+tree separately (for example `build_ref`, or a scratch copy). Do not stash and
+rebuild in place: aeb's timestamp cache can keep the fixed objects, and the
+test then wrongly "passes without the fix".
 
 The build nodes resolve the Aether tree with `aether_root()` in `.build.ae`.
 It reads `$MQJS_AETHER_HOME`, falls back to `/home/paul/scm/aether`, and
