@@ -22,5 +22,6 @@ aeb(cap) {
             aether_source("../../gen/genengine/module.ae")
             emit("", "example_stdlib.h")
         }
+        return 0
     }
 }

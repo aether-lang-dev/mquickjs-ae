@@ -26,5 +26,6 @@ aeb(cap) {
             emit("-a", "mquickjs_atom.h")
             emit("", "mqjs_stdlib.h")
         }
+        return 0
     }
 }

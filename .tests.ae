@@ -44,5 +44,6 @@ aeb(cap) {
         bash.test() {
             script("tests/test_readline.sh")
         }
+        return 0
     }
 }

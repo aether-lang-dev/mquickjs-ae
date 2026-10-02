@@ -9,7 +9,7 @@ import gen.mqjssources
 import std.os
 import std.string
 
-aether_root() -> string {
+aether_root_() -> string {
     // Not AETHER_HOME: that names the toolchain aeb itself runs on (often an
     // installed ~/.aether release), while the engine builds against a dev tree.
     root = os.getenv("MQJS_AETHER_HOME")
@@ -26,7 +26,7 @@ aeb(cap) {
             cflag("-fno-math-errno")
             cflag("-fno-trapping-math")
             cflag("-I.")
-            aether_home(aether_root())
+            aether_home(aether_root_())
             // The CLI host (ae/cli_host.ae) reads/writes files and uses the
             // clock via std.fs / std.os; this binary owns those capabilities.
             aether_caps("fs,os")
@@ -47,5 +47,6 @@ aeb(cap) {
             link_flag("-lm")
             output_file("mqjs")
         }
+        return 0
     }
 }
