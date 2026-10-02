@@ -90,8 +90,12 @@ next_after_string(s: ptr, pos: long, c: int) -> long {
 // multi-char operator dispatch; returns new pos.
 handle_operator(s: ptr, pos: long, c: int, b1: int) -> long {
     buf = (s as *JSParseState).source_buf
-    int b2 = mem.get_byte(buf, pos + 2)
-    int b3 = mem.get_byte(buf, pos + 3)
+    // Read lookahead lazily: the source is NUL-terminated, so never read past a
+    // 0 byte (an eager read overran the buffer at end of input; ASAN caught it).
+    int b2 = 0
+    if b1 != 0 { b2 = mem.get_byte(buf, pos + 2) }
+    int b3 = 0
+    if b2 != 0 { b3 = mem.get_byte(buf, pos + 3) }
     if c == 42 {           // '*'
         if b1 == 61 { set_tok_val(s, consts.TOK_MUL_ASSIGN)  return pos + 2 }
         if b1 == 42 {
@@ -160,7 +164,8 @@ next_token(s: ptr) {
         buf = (s as *JSParseState).source_buf
         mem.set_uint32(s, 12, pos)   // token.source_pos
         int c = mem.get_byte(buf, pos)
-        int b1 = mem.get_byte(buf, pos + 1)
+        int b1 = 0
+        if c != 0 { b1 = mem.get_byte(buf, pos + 1) }   // never read past the NUL
 
         if c == 0 {
             set_tok_val(s, consts.TOK_EOF)
