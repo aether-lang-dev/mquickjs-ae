@@ -4,10 +4,11 @@
 # stand in for the keys a terminal would send. Each case pipes an input
 # byte sequence and asserts the evaluated result appears in the output.
 #
-# Usage: tests/test_readline.sh path/to/mqjs
+# Usage: tests/test_readline.sh [path/to/mqjs]   (default: the aeb build)
 set -e
 
-MQJS="${1:-./mqjs}"
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+MQJS="${1:-$ROOT/target/build/bin/mqjs}"
 if [ ! -x "$MQJS" ]; then
     echo "usage: $0 path/to/mqjs" >&2
     exit 2

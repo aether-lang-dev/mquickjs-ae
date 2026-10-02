@@ -30,13 +30,16 @@ check() {
     fi
 }
 
-for t in test_closure test_language test_loop test_builtin test_gc_relocation; do
+for t in test_closure test_language test_loop test_builtin test_gc_relocation \
+         test_rom_write test_regexp_vs_div test_tagged_int; do
     check "$t" "$MQJS" "$ROOT/tests/$t.js"
 done
+check "low memory (32k)" "$MQJS" --memory-limit 32k "$ROOT/tests/test_low_memory.js"
 check "bytecode write" "$MQJS" -o "$TMP/t.bin" "$ROOT/tests/test_builtin.js"
 check "bytecode read" "$MQJS" -b "$TMP/t.bin"
 printf 'var o=[]; setTimeout(function(){o.push(2)},40); setTimeout(function(){o.push(1); setTimeout(function(){ if (o.join()!="1,2") throw Error("order " + o); },60)},10);\n' > "$TMP/timers.js"
 check "timers" "$MQJS" "$TMP/timers.js"
 check "dsl demo" "$MQJS" --dsl-demo
 check "embedding example" "$EXAMPLE" "$ROOT/tests/test_rect.js"
+check "embedding churn + finalizers" "$EXAMPLE" "$ROOT/tests/test_rect_more.js"
 exit $rc

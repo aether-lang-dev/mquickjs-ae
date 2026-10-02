@@ -7,6 +7,8 @@ import bldr
 import bldr (dep)
 import c
 import c (run)
+import bash
+import bash (script)
 
 aeb(cap) {
     bldr.build() {
@@ -19,6 +21,15 @@ aeb(cap) {
             run(".build.ae", "tests/test_builtin.js")
             // compacting-GC relocation under load (VM SAVE/RESTORE)
             run(".build.ae", "tests/test_gc_relocation.js")
+            // ROM property writes (Math.random = ...) take the slow path
+            run(".build.ae", "tests/test_rom_write.js")
+            // '/' after ++/-- is division; after *= /= a regexp may start
+            run(".build.ae", "tests/test_regexp_vs_div.js")
+            // computed negative ints decode correctly (typed arrays, coerce)
+            run(".build.ae", "tests/test_tagged_int.js")
+            // tiny heaps: README's 10 kB claim, and OOM is catchable + recoverable
+            run(".build.ae", "--memory-limit 10k tests/mandelbrot.js")
+            run(".build.ae", "--memory-limit 32k tests/test_low_memory.js")
             // bytecode write then read-back
             run(".build.ae", "-o test_builtin.bin tests/test_builtin.js")
             run(".build.ae", "-b test_builtin.bin")
@@ -26,6 +37,12 @@ aeb(cap) {
             run(".build.ae", "--dsl-demo")
             // embedding check
             run("example-app/.build.ae", "tests/test_rect.js")
+            // class-id checks, C<->JS callbacks, finalizer churn
+            run("example-app/.build.ae", "tests/test_rect_more.js")
+        }
+        // REPL line editor (ae/readline.ae) driven through `mqjs -i`
+        bash.test() {
+            script("tests/test_readline.sh")
         }
     }
 }
