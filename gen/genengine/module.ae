@@ -1362,6 +1362,11 @@ ge_ta_class(g: ptr, name: ptr, class_id: ptr, bpe: long, parent: ptr) {
     double_bits(proto_of(c), "BYTES_PER_ELEMENT", bpe)
 }
 
+// is_example: 0 = the mqjs CLI (adds gc/load/setTimeout/clearTimeout),
+// 1 = the embedding demo (adds Rectangle/FilledRectangle), 2 = core only:
+// the language builtins plus console/performance/print and nothing that
+// reaches the host OS, for an embedder (such as a sandboxed page host) that
+// layers its own globals on top.
 mqjs_stdlib_spec(is_example: int) -> ptr {
     // shared bases (standalone; referenced via set_parent()).
     err_base = klass_magic_standalone("Error", 1, "js_error_constructor", "JS_CLASS_ERROR")
@@ -1582,11 +1587,11 @@ mqjs_stdlib_spec(is_example: int) -> ptr {
     perf = object(g, "performance")
     cfunc(statics_of(perf), "now", 0, "js_performance_now")
     cfunc(g, "print", 1, "js_print")
-    if is_example != 0 {
+    if is_example == 1 {
         // CONFIG_CLASS_EXAMPLE: Rectangle + FilledRectangle (the host adds
         // their class specs via mqjs_example_classes()).
         mqjs_example_classes(g)
-    } else {
+    } else if is_example == 0 {
         cfunc(g, "gc", 0, "js_gc")
         cfunc(g, "load", 1, "js_load")
         cfunc(g, "setTimeout", 2, "js_setTimeout")
@@ -1599,7 +1604,7 @@ mqjs_stdlib_spec(is_example: int) -> ptr {
 mqjs_extra_cfuncs(is_example: int) -> ptr {
     d = stdlib() { }
     cfunc_special(d, "bound", 0, "generic_params", "js_function_bound")
-    if is_example != 0 {
+    if is_example == 1 {
         cfunc_special(d, "rectangle_closure_test", 0, "generic_params", "js_rectangle_closure_test")
     }
     return d
