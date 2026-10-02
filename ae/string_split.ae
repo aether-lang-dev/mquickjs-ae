@@ -109,7 +109,7 @@ js_string_split(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                         if (re_flags & consts.LRE_FLAG_STICKY) == 0 {
                             long res = JS_GetProperty(ctx, mem.get_long(zslot, 0), js_get_atom(ctx, consts.JS_ATOM_index))
                             if jstag.is_exception(res) != 0 { phase = 3 }
-                            else { q = res >> 1 }
+                            else { q = jstag.get_int(res) }
                         }
                         if phase == 0 {
                             p1 = jstag.value_to_ptr(mem.get_long(argv, 0))

@@ -58,7 +58,7 @@ const R_INITIAL_SP = 88
 
 lx_str_len(p: ptr) -> long { return mem.get_long(p, 0) >> 7 }
 lx_short_int(v: int) -> long { long l = v  return (l & 0xffffffff) << 1 }
-lx_get_int(v: long) -> int { return v >> 1 }
+lx_get_int(v: long) -> int { return jstag.get_int(v) }
 lx_u16(p: long) -> int { return mem.get_uint16(mem.long_to_ptr(p), 0) }
 lx_u32(p: long) -> int { return mem.get_uint32(mem.long_to_ptr(p), 0) }
 lx_b(p: long, i: long) -> int { return mem.get_byte(mem.long_to_ptr(p + i), 0) & 0xff }

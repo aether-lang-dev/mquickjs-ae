@@ -55,7 +55,7 @@ js_for_of_next(ctx: ptr) -> long {
     arr = jstag.value_to_ptr(it)
     long abase = mem.ptr_to_long(arr) + consts.VA_ARR
     long posv = mem.get_long(mem.long_to_ptr(abase + 8), 0)   // arr[1]
-    int pos = posv >> 1                                       // JS_VALUE_GET_INT
+    int pos = jstag.get_int(posv)                                      // JS_VALUE_GET_INT
     long src = mem.get_long(mem.long_to_ptr(abase), 0)        // arr[0]
     p = jstag.value_to_ptr(src)
     int len = (p as *JSObject).u.array.len             // p->u.array.len

@@ -124,7 +124,7 @@ js_array_sort_cmp(i1: long, i2: long, opaque: ptr) -> int {
     // stable tiebreak: compare original offsets at arr[2*i+1]
     long j1v = asc_get(parr, 2 * i1 + 1)
     long j2v = asc_get(parr, 2 * i2 + 1)
-    long j1 = j1v >> 1
-    long j2 = j2v >> 1
+    long j1 = jstag.get_int(j1v)
+    long j2 = jstag.get_int(j2v)
     return asc_sign(j1 - j2)
 }

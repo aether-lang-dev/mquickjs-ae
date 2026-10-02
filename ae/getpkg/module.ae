@@ -307,7 +307,7 @@ JS_GetPropertyInternal(ctx: ptr, obj: long, prop: long, allow_tail_call: int) ->
         int cid = gpi_class_id(p)
         if cid == consts.JS_CLASS_ARRAY {
             if jstag.is_int(prop) != 0 {
-                int idx = prop >> 1
+                int idx = jstag.get_int(prop)
                 int alen = mem.get_uint32(p, consts.JSOBJ_ARRAY_LEN)
                 if idx >= 0 && idx < alen {
                     long tab = mem.ptr_to_long(jstag.value_to_ptr(mem.get_long(p, consts.JSOBJ_ARRAY_TAB))) + consts.VA_ARR
@@ -319,7 +319,7 @@ JS_GetPropertyInternal(ctx: ptr, obj: long, prop: long, allow_tail_call: int) ->
         } else {
             if cid >= consts.JS_CLASS_UINT8C_ARRAY && cid <= consts.JS_CLASS_FLOAT64_ARRAY {
                 if jstag.is_int(prop) != 0 {
-                    int idx = prop >> 1
+                    int idx = jstag.get_int(prop)
                     int talen = mem.get_uint32(p, consts.JSOBJ_TA_LEN)
                     if idx >= 0 && idx < talen {
                         int off = mem.get_uint32(p, consts.JSOBJ_TA_OFFSET)

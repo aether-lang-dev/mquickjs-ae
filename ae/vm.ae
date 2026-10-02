@@ -200,6 +200,15 @@ va_set_(arrval: long, i: int, v: long) {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
     mem.set_long(mem.long_to_ptr(p + 8 + i * 8), 0, v)
 }
+// JS_IS_ROM_PTR(ctx, ptr): outside [ctx, ctx->stack_top), unsigned compare.
+vm_is_rom_(ctx: ptr, p: ptr) -> int {
+    long bias = 0x8000000000000000
+    long pb = mem.ptr_to_long(p) ^ bias
+    if pb < (mem.ptr_to_long(ctx) ^ bias) { return 1 }
+    if pb >= (mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_STACK_TOP)) ^ bias) { return 1 }
+    return 0
+}
+
 va_size_(arrval: long) -> int {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
     return mem.get_long(mem.long_to_ptr(p), 0) >> 4
@@ -701,7 +710,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 if obj_mtag_(p) != consts.MTAG_OBJECT { block = 321  continue }
                 if obj_class_id_(p) != CLASS_ARRAY { block = 321  continue }
                 int idx = v_get_int(gf_prop)
-                if idx >= obj_array_len_(p) { block = 321  continue }
+                if idx < 0 || idx >= obj_array_len_(p) { block = 321  continue }   // uint32_t idx upstream
                 val = va_get_(obj_array_tab_(p), idx)
                 set_slot(sp, 0, val)  block = 0  continue
             } }
@@ -899,8 +908,9 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             long pv = v_to_ptr(obj_closure_varref(p, idx))
             if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long(mem.long_to_ptr(vr_pvalue(pv)), 0) }
             if val == jstag.TAG_UNINITIALIZED {
+                long vname = va_get_(fb_ext_vars(b), 2 * idx)   // ext_vars->arr[2 * idx]
                 set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
-                val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable is not defined")
+                val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable '%lo' is not defined", vname)
                 // RESTORE: a GC during the call may have moved the bytecode
                 b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
@@ -921,8 +931,9 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
             long pval = 0
             if vr_is_detached(pv) != 0 { pval = pv + 8 } else { pval = vr_pvalue(pv) }
             if mem.get_long(mem.long_to_ptr(pval), 0) == jstag.TAG_UNINITIALIZED {
+                long vname = va_get_(fb_ext_vars(b), 2 * idx)   // ext_vars->arr[2 * idx]
                 set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
-                val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable is not defined")
+                val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable '%lo' is not defined", vname)
                 // RESTORE: a GC during the call may have moved the bytecode
                 b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                 block = consts.BLK_EXCEPTION  continue
@@ -1210,9 +1221,11 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 long p = v_to_ptr(obj)
                 if obj_mtag_(p) == consts.MTAG_OBJECT {
                     pr = find_own_property_inlined(ctx, mem.long_to_ptr(p), prop)
-                    if pr != null { if prop_type(pr) == consts.PROP_NORMAL {
+                    // a ROM property (e.g. Math.random) must take the slow path,
+                    // which copies the props to RAM first (upstream JS_IS_ROM_PTR)
+                    if pr != null { if prop_type(pr) == consts.PROP_NORMAL { if vm_is_rom_(ctx, pr) == 0 {
                         prop_set_value(pr, slot(sp, 0))  sp = sp + 16  pc = pc + 2  block = 0  continue
-                    } }
+                    } } }
                 }
             }
             long pv2 = slot(sp, 0)  sp = sp + 8
@@ -1229,7 +1242,10 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 long p = v_to_ptr(obj)
                 if obj_mtag_(p) == consts.MTAG_OBJECT { if obj_class_id_(p) == CLASS_ARRAY {
                     int idx = v_get_int(prop)  long tab = obj_array_tab_(p)  int alen = obj_array_len_(p)
-                    if idx >= alen {
+                    // idx is uint32_t upstream: negatives take the slow path
+                    // (which throws "invalid array subscript"), never tab[-n]
+                    if idx < 0 {
+                    } else if idx >= alen {
                         if idx == alen { if tab != jstag.JS_NULL { if idx < va_size_(tab) {
                             va_set_(tab, idx, slot(sp, 0))  obj_array_set_len(p, idx + 1)  sp = sp + 24  block = 0  continue
                         } } }

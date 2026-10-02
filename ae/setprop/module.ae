@@ -142,9 +142,10 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
         int cid = spi_class_id(p)
         if cid == consts.JS_CLASS_ARRAY {
             if jstag.is_int(prop) != 0 {
-                int idx = prop >> 1
+                int idx = jstag.get_int(prop)
                 int alen = mem.get_uint32(p, consts.JSOBJ_ARRAY_LEN)
-                if idx < alen {
+                // idx is uint32_t upstream: a negative index must not store
+                if idx >= 0 && idx < alen {
                     long tab = mem.ptr_to_long(jstag.value_to_ptr(mem.get_long(p, consts.JSOBJ_ARRAY_TAB))) + consts.VA_ARR
                     mem.set_long(mem.long_to_ptr(tab + idx * 8), 0, val)
                     return jstag.JS_UNDEFINED
@@ -177,7 +178,7 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
         } else {
             if cid >= consts.JS_CLASS_UINT8C_ARRAY && cid <= consts.JS_CLASS_FLOAT64_ARRAY {
                 if jstag.is_int(prop) != 0 {
-                    int idx = prop >> 1
+                    int idx = jstag.get_int(prop)
                     // GC-root this_obj, val across coercion
                     ref = malloc(32)
                     mem.set_long(ref, 0, this_obj)
@@ -286,7 +287,7 @@ spi_ta_store_outer(ctx: ptr, ref: ptr, idx: int, cid: int) -> int {
     long this_obj = mem.get_long(ref, 0)
     p = jstag.value_to_ptr(this_obj)
     int talen = mem.get_uint32(p, consts.JSOBJ_TA_LEN)
-    if idx >= talen { return 2 }
+    if idx < 0 || idx >= talen { return 2 }   // uint32_t idx upstream
     int ix = idx + mem.get_uint32(p, consts.JSOBJ_TA_OFFSET)
     pbuf = jstag.value_to_ptr(mem.get_long(p, consts.JSOBJ_TA_BUFFER))
     arr = jstag.value_to_ptr(mem.get_long(pbuf, consts.JSOBJ_AB_BYTEBUF))

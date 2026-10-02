@@ -99,7 +99,7 @@ to_number(ctx: ptr, pres: ptr, val: long) -> int {
     while redo != 0 {
         redo = 0
         if jstag.is_int(val) != 0 {
-            int iv = val >> 1                       // JS_VALUE_GET_INT
+            int iv = jstag.get_int(val)                       // JS_VALUE_GET_INT
             float d = iv
             mem.set_float64(pres, 0, d)
             return 0
@@ -171,7 +171,7 @@ to_string(ctx: ptr, val: long) -> long {
     while redo != 0 {
         redo = 0
         if jstag.is_int(val) != 0 {
-            int iv = val >> 1                      // JS_VALUE_GET_INT
+            int iv = jstag.get_int(val)                      // JS_VALUE_GET_INT
             buf = malloc(32)
             long len = i32toa(buf, iv)
             mem.set_byte(mem.long_to_ptr(mem.ptr_to_long(buf) + len), 0, 0)
@@ -343,7 +343,7 @@ to_int32_internal(ctx: ptr, pres: ptr, val: long, sat_flag: int) -> int {
     int got = 0
 
     if jstag.is_int(val) != 0 {
-        int iv = val >> 1
+        int iv = jstag.get_int(val)
         ret = iv
         got = 1
     } else { if tii_is_short_float(val) != 0 {
@@ -436,7 +436,7 @@ to_uint8_clamp(ctx: ptr, pres: ptr, val: long) -> int {
     int got = 0
 
     if jstag.is_int(val) != 0 {
-        int iv = val >> 1
+        int iv = jstag.get_int(val)
         if iv < 0 { iv = 0 } else { if iv > 255 { iv = 255 } }
         ret = iv
         got = 1
