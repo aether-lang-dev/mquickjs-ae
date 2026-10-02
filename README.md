@@ -1,6 +1,8 @@
 MicroQuickJS for Aether
 =======================
 
+[![CI](https://github.com/aether-lang-dev/mquickjs-port/actions/workflows/ci.yml/badge.svg)](https://github.com/aether-lang-dev/mquickjs-port/actions/workflows/ci.yml)
+
 A port of Fabrice Bellard and Charlie Gordon's
 [MicroQuickJS](https://github.com/bellard/mquickjs) (MQuickJS) JavaScript
 engine to the [Aether](https://github.com/aether-lang-dev/aether) programming
@@ -23,7 +25,7 @@ in [AGENTS.md](AGENTS.md).
 | | |
 |---|---|
 | **Correctness** | Output identical to upstream C (`7ea5399`, Bellard's last commit before the port) across the differential corpus: ~76k lines of generated number formatting/parsing and Math cases, the conformance suites and error paths (`scripts/diff-upstream.sh`, 23/23). Bellard's own `dtoa_test` (Gay vectors), `libm_test` and `rem_pio2` checks pass against this tree's `dtoa.c`/`libm.c`. All of the Octane benchmark runs with correct results. |
-| **Memory safety** | valgrind-clean (`run-valgrind.sh`); an ASAN mutation fuzzer (`scripts/fuzz.sh`) runs in CI. |
+| **Memory safety** | valgrind-clean (`run-valgrind.sh`); an ASAN mutation fuzzer (`scripts/fuzz.sh`) runs in CI. Both tools are blind *inside* the JS heap (one buffer the engine sub-allocates), so errors there are caught by the differential test and targeted regression tests (GC relocation, tagged-int decoding, negative indices, ROM writes). |
 | **Speed** | Slower than upstream C today: about **4.5×** on Octane's overall score and about **7×** on the microbench geometric mean (individual benchmarks range from 1.5× to 11×). The main cause is known: opcode dispatch is a chain of comparisons rather than a jump table. Track it with `scripts/bench.sh`. |
 | **Size** | The `-Os` binary's code is about 4.5× larger than upstream C's. |
 | **Remaining C** | `dtoa.c` and `libm.c` (third-party numerics), `mqjs.c` and `readline_tty.c` (CLI glue), `example.c` (C embedding demo), `mquickjs_build.c` (generator glue). |
@@ -159,8 +161,8 @@ JSValue my_js_func(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
         JS_SetPropertyStr(ctx, *obj1, "x", *obj2);  // obj1 and obj2 may move
         ret = *obj1;
      fail:
-        PopGCRef(ctx, &obj2_ref);
-        PopGCRef(ctx, &obj1_ref);
+        JS_PopGCRef(ctx, &obj2_ref);
+        JS_PopGCRef(ctx, &obj1_ref);
         return ret;
 }
 ```
@@ -299,7 +301,19 @@ scripts/bench.sh            # microbench vs upstream C; --octane for Octane
 (Octane and the dtoa/libm test drivers) are downloaded on demand into
 `target/extras`, checksum-verified. CI (`.github/workflows/ci.yml`) runs all
 of the above except the benchmark, against the Aether and aeb versions in
-`ci-pins`.
+`ci-pins`. It fuzzes 1,000 cases per push and 20,000 nightly; the benchmark
+can be run on demand from the Actions tab.
+
+## Roadmap
+
+- **Speed.** Replace the VM's linear opcode comparison chain (`ae/vm.ae`)
+  with jump-table dispatch, the main cause of the gap to upstream C.
+  `scripts/bench.sh` and `scripts/diff-upstream.sh` guard the change.
+- **The Aether API.** Make `ae/quickjs` a built and tested library that
+  Aether programs can import, with a working example.
+- **Less C.** Port `mqjs.c` and `example.c` to Aether; `readline_tty.c` waits
+  on terminal support in Aether's standard library.
+- **Upstream.** Offer the GC finalizer fix back to MicroQuickJS.
 
 ## License
 
