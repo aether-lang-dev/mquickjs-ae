@@ -49,18 +49,31 @@ Background reading:
 ```sh
 aeb .build.ae          # builds ./mqjs (depends on gen/)
 aeb .tests.ae          # the conformance gate (builds both programs first)
-./run-ae-tests.sh      # unit tests in tests/ae
+./run-ae-tests.sh      # unit tests in tests/ae (std.spec)
+./run-valgrind.sh      # memcheck of the built binaries (~2 min)
 ```
 
-The build nodes resolve the Aether tree with `aether_root()` in
-`.build.ae`. It checks `$AETHER_HOME`, then `$AETHER`, then falls back to
-`/home/paul/scm/aether`, and passes the result to `c.aether_home(...)`. The
+The build nodes resolve the Aether tree with `aether_root()` in `.build.ae`.
+It reads `$MQJS_AETHER_HOME`, falls back to `/home/paul/scm/aether`, and
+passes the result to `c.aether_home(...)`. It deliberately does not read
+`AETHER_HOME`, because that names the toolchain aeb itself runs on. The
 engine therefore builds against a **dev checkout** of Aether, not just an
 installed release. Rebuild that tree (`make` in `../aether`) before
-validating against a new Aether version.
+validating against a new Aether version. aeb's own orchestrator needs
+Aether 0.758 or later on `PATH`.
 
 `run-ae-tests.sh` runs each `tests/ae/test_*.ae` with
-`$AETHER/build/ae run --lib "$AEOCHA:$AETHER/std:$ROOT"`.
+`$AETHER/build/ae run --lib "$AETHER/std:$ROOT"`.
+
+`run-valgrind.sh` runs the release binaries under valgrind memcheck: the JS
+suites, the bytecode round-trip, timers, the DSL demo and the embedding
+example. Any invalid access, uninitialised read or definite/possible leak
+fails it. Run it after changes to allocation, GC roots or the CLI host. For
+overflows, an ASAN build (add `-fsanitize=address` to `cflag`/`link_flag` in
+a scratch copy of `.build.ae`) pinpoints the faulting access, which valgrind
+on `-Os` cannot. Both tools are blind *inside* the JS heap: it is one
+`malloc`'d block that the engine sub-allocates, so `tests/test_gc_relocation.js`
+and the microbench are what exercise the GC itself.
 
 ### Definition of done
 
