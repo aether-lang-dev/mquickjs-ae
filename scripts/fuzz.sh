@@ -38,7 +38,8 @@ if [ "$ASAN" = 1 ]; then
     SRC="$FZ/asan"
     rm -rf "$SRC"; mkdir -p "$SRC"
     (cd "$ROOT" && git ls-files -co --exclude-standard | tar -cf - -T -) | tar -xf - -C "$SRC"
-    sed -i 's/cflag("-Os")/cflag("-O1 -g -fsanitize=address -fno-omit-frame-pointer")\n            link_flag("-fsanitize=address")/' "$SRC/.build.ae"
+    # perl, not `sed -i`: GNU and BSD sed disagree on -i and on \n in a replacement
+    perl -pi -e 's/cflag\("-Os"\)/cflag("-O1 -g -fsanitize=address -fno-omit-frame-pointer")\n            link_flag("-fsanitize=address")/' "$SRC/.build.ae"
     aeb_env
     (cd "$SRC" && aeb .build.ae > "$FZ/asan-build.log" 2>&1) || die "ASAN build failed (see $FZ/asan-build.log)"
     MQJS="$SRC/target/build/bin/mqjs"
