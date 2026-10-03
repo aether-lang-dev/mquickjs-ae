@@ -195,25 +195,29 @@ alter them. That is how the N3 generator port was verified.
   `7ea5399`) all pass. Octane runs with correct results throughout. The ASAN
   fuzzer has run 9,000 cases with no crashes.
 - **Performance (2026-10-03, macOS arm64, Aether 0.763, both engines `-Os`).**
-  Octane: the port scores 0.44 of upstream C (it was 0.15); microbench 2.7×
+  Octane: the port scores 0.51 of upstream C (it was 0.15); microbench 2.1×
   slower (was 7.25×). What got it here, biggest first:
   - Aether 0.763 (#2375): `mem.long_to_ptr` / `ptr_to_long` / `get_ptr` and
     friends are inlined, and `--emit=lib` loop heads skip the deadline call.
   - Scratch out-parameters and GC roots are stack arrays (`long[N] x_stk_`),
-    not `malloc`/`free` pairs. C passes `&local`; the port had 256 sites that
-    allocated instead, and on macOS each malloc/free also reads the clock.
-    That was 26–43% of samples on numeric code. Don't add new
+    not `malloc`/`free` pairs (256 sites; 26–43% of samples on numeric code,
+    since macOS's allocator also reads the clock). Don't add new
     `x = malloc(8) ... free(x)` scratch: use a stack array.
-  - Opcode dispatch is a `switch` (worth ~2%: clang had already made a jump
-    table of the old `if` chain).
+  - The hot dispatch loop never tests `block`. `JS_Call` is an outer loop
+    (the slow-path `block` handlers) around an inner one (fetch + `switch
+    opcode`). A fast handler ends `block = 0  continue`; a handler that needs
+    a slow path ends `block = N  break`, leaving the switch, and the check
+    after the switch sends it to the outer loop. Keep that split when adding
+    an opcode: `continue` with a nonzero `block` inside the switch would loop
+    straight back to dispatch with the slow path ignored. Testing `block` on
+    every iteration had cost ~19% (clang folds it into a compare tree that
+    includes 0).
+  - Opcode dispatch is a `switch` (~2%: clang had already made a jump table).
   - `-O2` instead of `-Os` changes nothing for the port (upstream gains 7–8%).
-  What is left is structural. Upstream dispatches with computed goto; the
-  port emulates it with a loop, a `block` state variable and a switch. An
-  instruction-level trace of an integer loop puts ~28% in the dispatch
-  sequence, ~25% at the loop head, and ~19% deciding `block` (clang folds
-  `if block != 0` into a compare tree that includes 0). Profile with
-  `xctrace record --template 'Time Profiler'` (instruction PCs) or
-  `sample <pid> 2` (functions).
+  What is left is mostly computed goto, which upstream uses and Aether cannot
+  express (aether#2378), and per-access null checks in the `mem` accessors
+  (aether#2379). Profile with `xctrace record --template 'Time Profiler'`
+  (instruction PCs) or `sample <pid> 2` (functions).
 - **Bugs found by the new harnesses and fixed (October 2026):**
   - VM: missing b/pc reloads after GC-capable calls.
   - Tokenizer: buffer overread.
