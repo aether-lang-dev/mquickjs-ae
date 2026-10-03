@@ -30,6 +30,8 @@ aeb(cap) {
             // tiny heaps: README's 10 kB claim, and OOM is catchable + recoverable
             run(".build.ae", "--memory-limit 10k tests/mandelbrot.js")
             run(".build.ae", "--memory-limit 32k tests/test_low_memory.js")
+            // GC during a nested function's parse: the child must stay rooted
+            run(".build.ae", "--memory-limit 64k tests/test_gc_parse_local_functions.js")
             // bytecode write then read-back
             run(".build.ae", "-o test_builtin.bin tests/test_builtin.js")
             run(".build.ae", "-b test_builtin.bin")

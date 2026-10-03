@@ -92,9 +92,25 @@ js_parse_local_functions(s: ptr, pfunc: ptr) {
                         mem.set_byte(s, consts.JSPS_IS_REPL, 0)
                         mem.set_byte(s, consts.JSPS_HAS_RETVAL, 0)
 
-                        // GC-root fnv across js_parse_function (which uses cur_func)
+                        // GC-root fnv across js_parse_function, as upstream's
+                        // JS_PUSH_VALUE(ctx, func) / JS_POP_VALUE does. The
+                        // parse allocates, a compacting GC can move the
+                        // function, and the frame pushed below must hold its
+                        // new address: with the stale one, the next pass found
+                        // an old copy whose byte_code was null and
+                        // compute_stack_size faulted (Octane CodeLoad under
+                        // memory pressure). On the stack, like upstream's
+                        // JSGCRef, so a parse error (which unwinds via panic,
+                        // and restores top_gc_ref) cannot leak it.
+                        long[2] fnv_ref_slot
+                        fnv_ref = fnv_ref_slot
+                        mem.set_long(fnv_ref, 0, fnv)
+                        mem.set_ptr(fnv_ref, 8, (ctx as *JSContext).top_gc_ref)
+                        (ctx as *JSContext).top_gc_ref = fnv_ref
                         js_parse_function(s)
                         err = JS_StackCheck(ctx, 3)
+                        fnv = mem.get_long(fnv_ref, 0)
+                        (ctx as *JSContext).top_gc_ref = mem.get_ptr(fnv_ref, 8)
                         if err != 0 { js_parse_error_stack_overflow(s) }
 
                         // ctx->sp[0] = cpool_pos+1  (the saved slot is the lowest)
