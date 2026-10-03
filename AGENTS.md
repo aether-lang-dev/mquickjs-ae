@@ -194,10 +194,19 @@ alter them. That is how the N3 generator port was verified.
   `run-valgrind.sh` and `scripts/diff-upstream.sh` (23/23 identical to
   `7ea5399`) all pass. Octane runs with correct results throughout. The ASAN
   fuzzer has run 9,000 cases with no crashes.
-- **Performance is the open item.** The port runs about 4.5× slower than
-  upstream C on Octane and about 7× on the microbench. Opcode dispatch in
-  `ae/vm.ae` is a linear `if opcode == …` chain (~124 compares), not a
-  jump table, and that is the main lever. Measure with `scripts/bench.sh`.
+- **Performance (2026-10-03, macOS arm64).** Opcode dispatch is a `switch`
+  now, and the slow-path `block` handlers sit behind one `block != 0` test,
+  but that bought only ~2%: clang had already been making a jump table of the
+  `if opcode ==` chain. A profile showed the real costs were in Aether, not
+  the VM: `mem.long_to_ptr` / `ptr_to_long` / `get_ptr` were out-of-line
+  libaether calls (~30% of samples), and every `--emit=lib` loop head called
+  the deadline tripwire, two TLS reads each (~22%). Both are fixed in an
+  Aether change (extending the #1733 inline accessor lowering; a plain
+  `aether_caps_armed` global in front of the tripwire). With it, Octane is
+  2.3× faster (0.15 → 0.36 of upstream C's score) and the microbench went
+  from 7.25× to 3.39× slower than C. Until that Aether lands, a build at
+  `ci-pins` keeps the old numbers. Profile with `sample <pid> 2` on a running
+  `mqjs`; the top-of-stack list says where time goes.
 - **Bugs found by the new harnesses and fixed (October 2026):**
   - VM: missing b/pc reloads after GC-capable calls.
   - Tokenizer: buffer overread.
