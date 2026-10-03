@@ -86,7 +86,8 @@ git -C "$ROOT" show "$UPSTREAM_REF:libm.c" > "$C/libm_upstream.c"
 aeb_env
 "$AETHER_TREE/build/aetherc" --emit=lib --lib "$ROOT" "$ROOT/ae/dtoa.ae" "$C/dtoa_ae.c" >/dev/null 2>&1 \
     || die "aetherc failed on ae/dtoa.ae"
-INC=$(find "$AETHER_TREE/runtime" "$AETHER_TREE/std" -name '*.h' -printf '-I%h\n' | sort -u | tr '\n' ' ')
+# (not `find -printf`: GNU-only, and macOS's find rejects it)
+INC=$(find "$AETHER_TREE/runtime" "$AETHER_TREE/std" -name '*.h' -exec dirname {} \; | sort -u | sed 's/^/-I/' | tr '\n' ' ')
 CF="-O2 -D_GNU_SOURCE -fno-math-errno -fno-trapping-math -I$C -w"
 (cd "$C" &&
     gcc $CF $INC -o dtoa_test tests/dtoa_test.c tests/gay-fixed.c tests/gay-precision.c \
