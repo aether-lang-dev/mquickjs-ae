@@ -59,19 +59,19 @@ sp_set_(ctx: ptr, i: int, v: long) {
 
 // JSValue js_not_slow(JSContext *ctx)
 js_not_slow(ctx: ptr) -> long {
-    s = malloc(4)
-    if JS_ToUint32(ctx, s, sp_at(ctx, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    long[1] s_stk_
+    s = s_stk_
+    if JS_ToUint32(ctx, s, sp_at(ctx, 0)) != 0 {  return jstag.JS_EXCEPTION }
     int r = mem.get_uint32(s, 0)
-    free(s)
     return JS_NewInt32(ctx, 0 - 1 - r)   // ~r
 }
 
 // JSValue js_unary_arith_slow(JSContext *ctx, OPCodeEnum op)
 js_unary_arith_slow(ctx: ptr, op: int) -> long {
-    s = malloc(8)
-    if JS_ToNumber(ctx, s, sp_at(ctx, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    long[1] s_stk_
+    s = s_stk_
+    if JS_ToNumber(ctx, s, sp_at(ctx, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(s, 0)
-    free(s)
     if op == opcodes.OP_inc { d = d + 1.0 }
     else if op == opcodes.OP_dec { d = d - 1.0 }
     else if op == opcodes.OP_plus { d = d }
@@ -81,10 +81,10 @@ js_unary_arith_slow(ctx: ptr, op: int) -> long {
 
 // JSValue js_post_inc_slow(JSContext *ctx, OPCodeEnum op)
 js_post_inc_slow(ctx: ptr, op: int) -> long {
-    s = malloc(8)
-    if JS_ToNumber(ctx, s, sp_at(ctx, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    long[1] s_stk_
+    s = s_stk_
+    if JS_ToNumber(ctx, s, sp_at(ctx, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(s, 0)
-    free(s)
     float r = d + (2 * (op - opcodes.OP_post_dec) - 1)
     long val = JS_NewFloat64(ctx, d)
     if jstag.is_exception(val) != 0 { return val }
@@ -94,14 +94,14 @@ js_post_inc_slow(ctx: ptr, op: int) -> long {
 
 // JSValue js_binary_logic_slow(JSContext *ctx, OPCodeEnum op)
 js_binary_logic_slow(ctx: ptr, op: int) -> long {
-    s1 = malloc(4)
-    s2 = malloc(4)
-    if JS_ToUint32(ctx, s1, sp_at(ctx, 1)) != 0 { free(s1)  free(s2)  return jstag.JS_EXCEPTION }
-    if JS_ToUint32(ctx, s2, sp_at(ctx, 0)) != 0 { free(s1)  free(s2)  return jstag.JS_EXCEPTION }
+    long[1] s1_stk_
+    s1 = s1_stk_
+    long[1] s2_stk_
+    s2 = s2_stk_
+    if JS_ToUint32(ctx, s1, sp_at(ctx, 1)) != 0 {  return jstag.JS_EXCEPTION }
+    if JS_ToUint32(ctx, s2, sp_at(ctx, 0)) != 0 {  return jstag.JS_EXCEPTION }
     int v1 = mem.get_uint32(s1, 0)
     int v2 = mem.get_uint32(s2, 0)
-    free(s1)
-    free(s2)
     int sh = v2 & 0x1f
     if op == opcodes.OP_shl { return JS_NewInt32(ctx, v1 << sh) }
     if op == opcodes.OP_sar { return JS_NewInt32(ctx, v1 >> sh) }
@@ -142,13 +142,13 @@ js_add_slow(ctx: ptr) -> long {
     int s2 = JS_IsString(ctx, o2)
     if s1 != 0 { return add_concat(ctx, o1, o2) }
     if s2 != 0 { return add_concat(ctx, o1, o2) }
-    pa = malloc(8)
-    pb = malloc(8)
-    if JS_ToNumber(ctx, pa, o1) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
-    if JS_ToNumber(ctx, pb, o2) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
+    long[1] pa_stk_
+    pa = pa_stk_
+    long[1] pb_stk_
+    pb = pb_stk_
+    if JS_ToNumber(ctx, pa, o1) != 0 {  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, pb, o2) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(pa, 0) + mem.get_float64(pb, 0)
-    free(pa)
-    free(pb)
     return JS_NewFloat64(ctx, d)
 }
 
@@ -162,14 +162,14 @@ add_concat(ctx: ptr, o1: long, o2: long) -> long {
 
 // JSValue js_binary_arith_slow(JSContext *ctx, OPCodeEnum op)
 js_binary_arith_slow(ctx: ptr, op: int) -> long {
-    pa = malloc(8)
-    pb = malloc(8)
-    if JS_ToNumber(ctx, pa, sp_at(ctx, 1)) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
-    if JS_ToNumber(ctx, pb, sp_at(ctx, 0)) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
+    long[1] pa_stk_
+    pa = pa_stk_
+    long[1] pb_stk_
+    pb = pb_stk_
+    if JS_ToNumber(ctx, pa, sp_at(ctx, 1)) != 0 {  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, pb, sp_at(ctx, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float d1 = mem.get_float64(pa, 0)
     float d2 = mem.get_float64(pb, 0)
-    free(pa)
-    free(pb)
     float r = 0.0
     if op == opcodes.OP_sub { r = d1 - d2 }
     else if op == opcodes.OP_mul { r = d1 * d2 }
@@ -217,14 +217,14 @@ js_relational_slow(ctx: ptr, op: int) -> long {
         return jstag.new_bool(cmp_op(op, c))
     } }
 
-    pa = malloc(8)
-    pb = malloc(8)
-    if JS_ToNumber(ctx, pa, o1) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
-    if JS_ToNumber(ctx, pb, o2) != 0 { free(pa)  free(pb)  return jstag.JS_EXCEPTION }
+    long[1] pa_stk_
+    pa = pa_stk_
+    long[1] pb_stk_
+    pb = pb_stk_
+    if JS_ToNumber(ctx, pa, o1) != 0 {  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, pb, o2) != 0 {  return jstag.JS_EXCEPTION }
     float d1 = mem.get_float64(pa, 0)
     float d2 = mem.get_float64(pb, 0)
-    free(pa)
-    free(pb)
     // NaN comparisons must yield false: use the direct float comparisons.
     if op == opcodes.OP_lt { if d1 < d2 { res = 1 } }
     else if op == opcodes.OP_lte { if d1 <= d2 { res = 1 } }
@@ -394,14 +394,14 @@ strnum(t1: int, t2: int) -> int {
 js_strict_eq(ctx: ptr, op1: long, op2: long) -> int {
     if JS_IsNumber(ctx, op1) != 0 {
         if JS_IsNumber(ctx, op2) == 0 { return 0 }
-        pa = malloc(8)
-        pb = malloc(8)
+        long[1] pa_stk_
+        pa = pa_stk_
+        long[1] pb_stk_
+        pb = pb_stk_
         JS_ToNumber(ctx, pa, op1)   // cannot fail (both numbers)
         JS_ToNumber(ctx, pb, op2)
         float d1 = mem.get_float64(pa, 0)
         float d2 = mem.get_float64(pb, 0)
-        free(pa)
-        free(pb)
         if d1 == d2 { return 1 }   // NaN != NaN -> false
         return 0
     }

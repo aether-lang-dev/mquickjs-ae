@@ -39,10 +39,10 @@ js_string_split(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long lim = 0xffffffff
     long a1 = mem.get_long(argv, 8)
     if jstag.is_undefined(a1) == 0 {
-        pres = malloc(8)
+        long[1] pres_stk_
+        pres = pres_stk_
         int r = JS_ToUint32(ctx, pres, a1)
         lim = mem.get_uint32(pres, 0) & 0xffffffff
-        free(pres)
         if r < 0 { return jstag.JS_EXCEPTION }
     }
 
@@ -56,8 +56,10 @@ js_string_split(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         if jstag.is_exception(a0) != 0 { return jstag.JS_EXCEPTION }
     }
 
-    aref = malloc(16)
-    zref = malloc(16)
+    long[2] aref_stk_
+    aref = aref_stk_
+    long[2] zref_stk_
+    zref = zref_stk_
     aslot = JS_PushGCRef(ctx, aref)
     zslot = JS_PushGCRef(ctx, zref)
     long arrv = JS_NewArray(ctx, 0)
@@ -196,8 +198,6 @@ js_string_split(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
     JS_PopGCRef(ctx, zref)
     long result = JS_PopGCRef(ctx, aref)
-    free(zref)
-    free(aref)
     if phase == 3 { return jstag.JS_EXCEPTION }
     return result
 }

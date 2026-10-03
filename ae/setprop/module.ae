@@ -84,7 +84,8 @@ spi_call_setter(ctx: ptr, setter: long, this_obj: long, val: long, allow_tail_ca
         return jstag.make_special(jstag.TAG_EXCEPTION, code)
     }
     // GC-root val, setter, this_obj across stack check (3 refs of 16 bytes)
-    ref = malloc(48)
+    long[6] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, val)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_long(ref, 16, setter)
@@ -97,7 +98,6 @@ spi_call_setter(ctx: ptr, setter: long, this_obj: long, val: long, allow_tail_ca
     setter = mem.get_long(ref, 16)
     this_obj = mem.get_long(ref, 32)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-    free(ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     JS_PushArg(ctx, val)
     JS_PushArg(ctx, setter)
@@ -152,7 +152,8 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                 }
                 if idx == alen {
                     // append: GC-root this_obj, val across resize
-                    ref = malloc(32)
+                    long[4] ref_stk_
+                    ref = ref_stk_
                     mem.set_long(ref, 0, this_obj)
                     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
                     mem.set_long(ref, 16, val)
@@ -162,7 +163,6 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                     this_obj = mem.get_long(ref, 0)
                     val = mem.get_long(ref, 16)
                     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-                    free(ref)
                     if jstag.is_exception(new_tab) != 0 { return jstag.JS_EXCEPTION }
                     p = jstag.value_to_ptr(this_obj)
                     mem.set_long(p, consts.JSOBJ_ARRAY_TAB, new_tab)
@@ -180,7 +180,8 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                 if jstag.is_int(prop) != 0 {
                     int idx = jstag.get_int(prop)
                     // GC-root this_obj, val across coercion
-                    ref = malloc(32)
+                    long[4] ref_stk_
+                    ref = ref_stk_
                     mem.set_long(ref, 0, this_obj)
                     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
                     mem.set_long(ref, 16, val)
@@ -188,7 +189,6 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.long_to_ptr(mem.ptr_to_long(ref) + 16))
                     int st = spi_ta_store_outer(ctx, ref, idx, cid)
                     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-                    free(ref)
                     if st == 1 { return jstag.JS_EXCEPTION }
                     if st == 2 { return spi_invalid_subscript(ctx) }
                     return jstag.JS_UNDEFINED
@@ -225,7 +225,8 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                 } } }
 
                 if need_convert != 0 {
-                    box = malloc(48)
+                    long[6] box_stk_
+                    box = box_stk_
                     mem.set_long(box, 0, this_obj)  mem.set_ptr(box, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
                     mem.set_long(box, 16, prop)     mem.set_ptr(box, 24, mem.long_to_ptr(mem.ptr_to_long(box)))
                     mem.set_long(box, 32, val)      mem.set_ptr(box, 40, mem.long_to_ptr(mem.ptr_to_long(box) + 16))
@@ -233,7 +234,6 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
                     int e = props.js_update_props(ctx, this_obj)
                     this_obj = mem.get_long(box, 0)  prop = mem.get_long(box, 16)  val = mem.get_long(box, 32)
                     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(box, 8))
-                    free(box)
                     if e != 0 { return jstag.JS_EXCEPTION }
                     p = jstag.value_to_ptr(this_obj)
                     redo = 1
@@ -274,15 +274,15 @@ JS_SetPropertyInternal(ctx: ptr, this_obj: long, prop: long, val: long, allow_ta
 spi_ta_store_outer(ctx: ptr, ref: ptr, idx: int, cid: int) -> int {
     long val = mem.get_long(ref, 16)
     // coerce
-    pres = malloc(8)
+    long[1] pres_stk_
+    pres = pres_stk_
     int conv_ret = 0
     if cid == consts.JS_CLASS_UINT8C_ARRAY { conv_ret = JS_ToUint8Clamp(ctx, pres, val) }
     else { if cid == consts.JS_CLASS_FLOAT32_ARRAY || cid == consts.JS_CLASS_FLOAT64_ARRAY { conv_ret = JS_ToNumber(ctx, pres, val) }
     else { conv_ret = JS_ToInt32(ctx, pres, val) } }
-    if conv_ret != 0 { free(pres)  return 1 }
+    if conv_ret != 0 {  return 1 }
     int iv = mem.get_int(pres, 0)
     float dv = mem.get_float64(pres, 0)
-    free(pres)
     // reload p (this_obj may have moved)
     long this_obj = mem.get_long(ref, 0)
     p = jstag.value_to_ptr(this_obj)

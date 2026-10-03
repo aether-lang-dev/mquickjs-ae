@@ -41,14 +41,14 @@ pf_call_write(write_func: ptr, opaque: ptr, buf: ptr, len: long) {
 pad(write_func: ptr, opaque: ptr, c: int, width: int, len: int) {
     if len >= width { return }
     int w = width - len
-    pbuf = malloc(16)
+    long[2] pbuf_stk_
+    pbuf = pbuf_stk_
     memset(pbuf, c, pf_min(16, w))
     while w != 0 {
         long l = pf_min(w, 16)
         pf_call_write(write_func, opaque, pbuf, l)
         w = w - l
     }
-    free(pbuf)
 }
 
 // void snprintf_write_func(void *opaque, const void *buf, size_t buf_len)
@@ -67,7 +67,8 @@ snprintf_write_func(opaque: ptr, buf: ptr, buf_len: long) {
 // int js_vsnprintf(char *buf, size_t buf_size, const char *fmt, va_list ap)
 // (ap arrives as a vap cookie; callers forward their own va_start).
 js_vsnprintf(buf: ptr, buf_size: long, fmt: ptr, vap: ptr) -> int {
-    ss = malloc(24)
+    long[3] ss_stk_
+    ss = ss_stk_
     mem.set_ptr(ss, consts.SNP_PTR, buf)
     mem.set_ptr(ss, consts.SNP_BUF_END, mem.long_to_ptr(mem.ptr_to_long(buf) + pf_max(buf_size, 1) - 1))
     mem.set_int(ss, consts.SNP_LEN, 0)
@@ -77,7 +78,6 @@ js_vsnprintf(buf: ptr, buf_size: long, fmt: ptr, vap: ptr) -> int {
         mem.set_byte(mem.long_to_ptr(cur), 0, 0)
     }
     int ret = mem.get_int(ss, consts.SNP_LEN)
-    free(ss)
     return ret
 }
 
@@ -98,10 +98,10 @@ js_snprintf(buf: ptr, buf_size: long, fmt: ptr, ...) -> int {
 
 // void js_putchar(JSContext *ctx, uint8_t c)
 js_putchar(ctx: ptr, c: int) {
-    cbuf = malloc(1)
+    long[1] cbuf_stk_
+    cbuf = cbuf_stk_
     mem.set_byte(cbuf, 0, c)
     pf_call_write((ctx as *JSContext).write_func, (ctx as *JSContext).opaque, cbuf, 1)
-    free(cbuf)
 }
 
 // void cprintf(char **pp, char *buf_end, const char *fmt, ...)
@@ -118,15 +118,16 @@ cprintf(pp: ptr, buf_end: ptr, fmt: ptr, ...) {
 
 // JSValue JS_ThrowError(JSContext *ctx, JSObjectClassEnum error_num, const char *fmt, ...)
 JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long {
-    buf = malloc(128)
+    long[16] buf_stk_
+    buf = buf_stk_
     vl = va_start()
     js_vsnprintf(buf, 128, fmt, vl)
     va_end(vl)
     long msg = JS_NewString(ctx, buf)
-    free(buf)
 
     // GC-root msg across JS_NewObjectProtoClass
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, msg)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, 80))   // top_gc_ref
     mem.set_ptr(ctx, 80, ref)
@@ -134,7 +135,6 @@ JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long {
     long error_obj = JS_NewObjectProtoClass(ctx, proto, consts.JS_CLASS_ERROR, consts.SIZEOF_JSERRORDATA)
     msg = mem.get_long(ref, 0)
     mem.set_ptr(ctx, 80, mem.get_ptr(ref, 8))
-    free(ref)
     if jstag.is_exception(error_obj) != 0 { return error_obj }
 
     p = jstag.value_to_ptr(error_obj)
@@ -143,14 +143,14 @@ JS_ThrowError(ctx: ptr, error_num: int, fmt: ptr, ...) -> long {
 
     if error_num != consts.JS_CLASS_SYNTAX_ERROR {
         // GC-root error_obj across build_backtrace
-        r2 = malloc(16)
+        long[2] r2_stk_
+        r2 = r2_stk_
         mem.set_long(r2, 0, error_obj)
         mem.set_ptr(r2, 8, mem.get_ptr(ctx, 80))
         mem.set_ptr(ctx, 80, r2)
         build_backtrace(ctx, error_obj, mem.long_to_ptr(0), 0, 0, 0)
         error_obj = mem.get_long(r2, 0)
         mem.set_ptr(ctx, 80, mem.get_ptr(r2, 8))
-        free(r2)
     }
 
     return JS_Throw(ctx, error_obj)

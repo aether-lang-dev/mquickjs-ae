@@ -311,11 +311,11 @@ parse_escape(s: ptr, term_start: int) -> int {
         return emit_normal_char(s, 0)
     }
     if c1 >= 49 { if c1 <= 57 {   // '1'..'9' back reference
-        slot = malloc(8)
+        long[1] slot_stk_
+        slot = slot_stk_
         mem.set_long(slot, 0, source_ptr(s) + buf_pos_(s) + 1)
         int c = parse_digits(slot)
         long np = mem.get_long(slot, 0)
-        free(slot)
         set_buf_pos_(s, np - source_ptr(s))
         if c > CAPTURE_COUNT_MAX { js_parse_error(s, "back reference is out of range") }
         int last_atom_start = byte_code_len_(s)

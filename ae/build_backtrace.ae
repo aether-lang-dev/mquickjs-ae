@@ -26,10 +26,10 @@ const FO_CUR_PC = 0 - 8     // -1 JSValue
 
 // const char *get_func_name(JSContext *ctx, JSValue func_obj, JSCStringBuf *str_buf, JSFunctionBytecode **pb)
 get_func_name(ctx: ptr, func_obj: long, str_buf: ptr, pb: ptr) -> ptr {
-    foslot = malloc(8)
+    long[1] foslot_stk_
+    foslot = foslot_stk_
     mem.set_long(foslot, 0, func_obj)
     long val = funcname.js_function_get_length_name1(ctx, foslot, 1, pb)
-    free(foslot)
     if jstag.is_null(val) != 0 { return mem.long_to_ptr(0) }
     return JS_ToCString(ctx, val, str_buf)
 }
@@ -39,7 +39,8 @@ get_func_name(ctx: ptr, func_obj: long, str_buf: ptr, pb: ptr) -> ptr {
 build_backtrace(ctx: ptr, error_obj: long, filename: ptr, line_num: int, col_num: int, skip_level: int) {
     if JS_IsError(ctx, error_obj) == 0 { return }
 
-    buf = malloc(128)
+    long[16] buf_stk_
+    buf = buf_stk_
     mem.set_byte(buf, 0, 0)
     long bufbase = mem.ptr_to_long(buf)
     long buf_end = bufbase + 128
@@ -74,10 +75,10 @@ build_backtrace(ctx: ptr, error_obj: long, filename: ptr, line_num: int, col_num
                     bp = mem.long_to_ptr(b)
                     fnamep = JS_ToCString(ctx, mem.get_long(bp, consts.FB_FILENAME), str_buf)
                     int pc = jstag.get_int(mem.get_long(mem.long_to_ptr(fp + FO_CUR_PC), 0)) - 1
-                    colp = malloc(4)
+                    long[1] colp_stk_
+                    colp = colp_stk_
                     int ln = circref.find_line_col(colp, bp, pc)
                     int cn = mem.get_int(colp, 0)
-                    free(colp)
                     cprintf(pp, mem.long_to_ptr(buf_end), " (%s", fnamep)
                     if ln != 0 {
                         cprintf(pp, mem.long_to_ptr(buf_end), ":%d", ln)
@@ -106,14 +107,14 @@ build_backtrace(ctx: ptr, error_obj: long, filename: ptr, line_num: int, col_num
     }
 
     // GC-root error_obj across JS_NewString
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, error_obj)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     long stack_str = JS_NewString(ctx, buf)
     error_obj = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     p1 = jstag.value_to_ptr(error_obj)
     mem.set_long(p1, consts.ERR_STACK_OFF, stack_str)
@@ -121,5 +122,4 @@ build_backtrace(ctx: ptr, error_obj: long, filename: ptr, line_num: int, col_num
     free(pb)
     free(str_buf)
     free(pp)
-    free(buf)
 }

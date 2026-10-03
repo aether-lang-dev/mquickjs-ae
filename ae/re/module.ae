@@ -52,7 +52,8 @@ re_emit_op(s: ptr, op: int) {
 
 // void re_emit_char(JSParseState *s, int c)
 re_emit_char(s: ptr, c: int) {
-    buf = malloc(8)
+    long[1] buf_stk_
+    buf = buf_stk_
     // unicode_to_utf8: ascii fast path else unicode_to_utf8
     long n = 1
     if c < 0x80 {
@@ -67,7 +68,6 @@ re_emit_char(s: ptr, c: int) {
         emit.emit_u8(s, mem.get_byte(buf, i))
         i = i + 1
     }
-    free(buf)
 }
 
 // int re_emit_goto(JSParseState *s, int op, uint32_t val)
@@ -401,7 +401,8 @@ re_parse_quantifier(s: ptr, last_atom_start: int, last_capture_count: int) {
         int b1 = mem.get_byte(mem.long_to_ptr(p + 1), 0) & 0xff
         if is_dig(b1) == 0 { js_parse_error(s, "invalid repetition count") }
         p = p + 1
-        pp = malloc(8)
+        long[1] pp_stk_
+        pp = pp_stk_
         mem.set_long(pp, 0, p)
         quant_min = parse_digits(pp)
         p = mem.get_long(pp, 0)
@@ -417,7 +418,6 @@ re_parse_quantifier(s: ptr, last_atom_start: int, last_capture_count: int) {
                 quant_max = consts.JS_SHORTINT_MAX
             }
         }
-        free(pp)
         rpq_set_buf_pos(s, p - src)
         re_parse_expect(s, 125)              // '}'
         p = src + rpq_buf_pos(s)
@@ -437,11 +437,11 @@ re_parse_quantifier(s: ptr, last_atom_start: int, last_capture_count: int) {
     if last_atom_start < 0 { js_parse_error(s, "nothing to repeat") }
 
     // need_capture_init out-param + add_zero_advance_check
-    pneed = malloc(8)
+    long[1] pneed_stk_
+    pneed = pneed_stk_
     long atom_buf = rpq_bcbuf(s) + last_atom_start
     int azac = re_need_check_adv_and_capture_init(pneed, mem.long_to_ptr(atom_buf), rpq_bclen(s) - last_atom_start)
     int need_capture_init = mem.get_int(pneed, 0)
-    free(pneed)
 
     if need_capture_init != 0 && last_capture_count != rpq_capture_count(s) {
         emit.emit_insert(s, last_atom_start, 3)

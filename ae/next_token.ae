@@ -52,11 +52,11 @@ parse_number(s: ptr, pos: long) -> long {
     if tmp_arr == null { js_parse_error_mem(s) }
     buf = (s as *JSParseState).source_buf
     pstart = mem.long_to_ptr(mem.ptr_to_long(buf) + pos)
-    pnext = malloc(8)
+    long[1] pnext_stk_
+    pnext = pnext_stk_
     int flags = consts.JS_ATOD_ACCEPT_BIN_OCT | consts.JS_ATOD_ACCEPT_UNDERSCORES
     float d = js_atod(pstart, pnext, 0, flags, mem.long_to_ptr(mem.ptr_to_long(tmp_arr) + 8))
     long newp = mem.ptr_to_long(mem.get_ptr(pnext, 0))
-    free(pnext)
     js_free(ctx, tmp_arr)
     if f_isnan_(d) != 0 { js_parse_error(s, "invalid number literal") }
     set_tok_val(s, consts.TOK_NUMBER)
@@ -76,13 +76,13 @@ is_ident_first_(c: int) -> int {
 // scan a string literal starting at the quote char; returns new pos.
 next_after_string(s: ptr, pos: long, c: int) -> long {
     long p = pos + 1
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     mem.set_uint32(slot, 0, p)
     long v = js_parse_string(s, slot, c)
     set_tok_value_(s, v)
     set_tok_val(s, consts.TOK_STRING)
     long newp = mem.get_uint32(slot, 0) & 0xffffffff
-    free(slot)
     return newp
 }
 // multi-char operator dispatch; returns new pos.
@@ -205,21 +205,21 @@ next_token(s: ptr) {
                 redo = 1
             } else if is_regexp_allowed(mem.get_int(s, 8)) != 0 {
                 pos = pos + 1
-                slot = malloc(8)
+                long[1] slot_stk_
+                slot = slot_stk_
                 mem.set_uint32(slot, 0, pos)
                 js_parse_regexp_token(s, slot)
                 pos = mem.get_uint32(slot, 0) & 0xffffffff
-                free(slot)
             } else if b1 == 61 { pos = pos + 2  set_tok_val(s, consts.TOK_DIV_ASSIGN) }
             else { pos = pos + 1  set_tok_val(s, c) }
         } else if is_ident_first_(c) != 0 {
             pos = pos + 1
-            slot = malloc(8)
+            long[1] slot_stk_
+            slot = slot_stk_
             mem.set_uint32(slot, 0, pos)
             // js_parse_ident(s, &s->token, slot, c); &s->token = s+8
             js_parse_ident(s, mem.long_to_ptr(mem.ptr_to_long(s) + 8), slot, c)
             pos = mem.get_uint32(slot, 0) & 0xffffffff
-            free(slot)
         } else if c == 46 {            // '.'
             if is_digit_(b1) != 0 { pos = parse_number(s, pos) }
             else { pos = pos + 1  set_tok_val(s, c) }

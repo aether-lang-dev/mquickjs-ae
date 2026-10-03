@@ -37,8 +37,10 @@ js_string_match(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     p = jstag.value_to_ptr(rx)
     mem.set_int(p, consts.RE_LAST_INDEX, 0)
 
-    aref = malloc(16)
-    rref = malloc(16)
+    long[2] aref_stk_
+    aref = aref_stk_
+    long[2] rref_stk_
+    rref = rref_stk_
     JS_PushGCRef(ctx, aref)
     JS_PushGCRef(ctx, rref)
     mem.set_long(aref, 0, jstag.JS_NULL)
@@ -71,7 +73,5 @@ js_string_match(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if failed != 0 { mem.set_long(aref, 0, jstag.JS_EXCEPTION) }
     JS_PopGCRef(ctx, rref)
     long result = JS_PopGCRef(ctx, aref)
-    free(rref)
-    free(aref)
     return result
 }

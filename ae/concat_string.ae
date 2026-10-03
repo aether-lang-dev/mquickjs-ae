@@ -17,11 +17,11 @@ exports (JS_ConcatString)
 JS_ConcatString(ctx: ptr, val1: long, val2: long) -> long {
     if jstag.is_exception(val1) != 0 { return jstag.JS_EXCEPTION }
     if jstag.is_exception(val2) != 0 { return jstag.JS_EXCEPTION }
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
     sbconcat.string_buffer_concat_str(ctx, b, val1)
     sbconcat.string_buffer_concat_str(ctx, b, val2)
     long r = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     return r
 }

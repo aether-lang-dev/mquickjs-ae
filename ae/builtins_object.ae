@@ -156,7 +156,8 @@ js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long ret = JS_NewArray(ctx, alloc_size)
     if jstag.is_exception(ret) != 0 { return jstag.JS_EXCEPTION }
 
-    ret_ref = malloc(16)
+    long[2] ret_ref_stk_
+    ret_ref = ret_ref_stk_
     gc_push_(ctx, ret_ref, ret)
 
     int pos = 0
@@ -198,7 +199,6 @@ js_object_keys(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
 
     long final_ret = gc_pop_(ctx, ret_ref)
-    free(ret_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     // set ret->u.array.len = pos
     pret = jstag.value_to_ptr(final_ret)
@@ -217,7 +217,8 @@ js_object_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if jstag.is_int(v) != 0 { is_num_prim = 1 }
     else if (v & 7) == 5 { is_num_prim = 1 }   // short-float tag
 
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
     strbuf.string_buffer_puts(ctx, b, "[object ")
 
@@ -247,6 +248,5 @@ js_object_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
     strbuf.string_buffer_puts(ctx, b, "]")
     long result = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     return result
 }

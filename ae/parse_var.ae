@@ -23,7 +23,8 @@ exports (js_parse_var)
 // void js_parse_var(JSParseState *s, BOOL in_accepted)
 js_parse_var(s: ptr, in_accepted: int) {
     ctx = (s as *JSParseState).ctx
-    kslot = malloc(8)
+    long[1] kslot_stk_
+    kslot = kslot_stk_
     int looping = 1
     while looping != 0 {
         int ident_source_pos = mem.get_uint32(s, 12)   // token.source_pos
@@ -47,5 +48,4 @@ js_parse_var(s: ptr, in_accepted: int) {
         if mem.get_int(s, 8) != 44 { looping = 0 }   // ','
         else { next_token(s) }
     }
-    free(kslot)
 }

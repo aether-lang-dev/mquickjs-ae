@@ -35,9 +35,11 @@ js_string_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_string_fromCharCode(ctx, this_val, argc, argv, is_fromCodePoint)
 js_string_fromCharCode(ctx: ptr, this_val: ptr, argc: int, argv: ptr, is_fromCodePoint: int) -> long {
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int i = 0
     int failed = 0
     while i < argc {
@@ -64,9 +66,7 @@ js_string_fromCharCode(ctx: ptr, this_val: ptr, argc: int, argv: ptr, is_fromCod
             }
         }
     }
-    free(slot)
     long result = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     if failed != 0 { return jstag.JS_EXCEPTION }
     return result
 }

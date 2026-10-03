@@ -172,7 +172,8 @@ get_line_col(pcol_num: ptr, buf: ptr, len: long) -> int {
 get_line_col_delta(pcol_num: ptr, buf: ptr, pos1: int, pos2: int) -> int {
     int line_num = 0
     int col_num = 0
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     if pos2 >= pos1 {
         src = mem.long_to_ptr(mem.ptr_to_long(buf) + pos1)
         line_num = get_line_col(slot, src, pos2 - pos1)
@@ -202,7 +203,6 @@ get_line_col_delta(pcol_num: ptr, buf: ptr, pos1: int, pos2: int) -> int {
             }
         }
     }
-    free(slot)
     mem.set_int(pcol_num, 0, col_num)
     return line_num
 }

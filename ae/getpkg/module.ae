@@ -65,7 +65,8 @@ get_class_atom(s: ptr, inclass: int) -> int {
     long p = source_buf + buf_pos
     int c = mem.get_byte(mem.long_to_ptr(p), 0) & 0xff
 
-    plen = malloc(8)
+    long[1] plen_stk_
+    plen = plen_stk_
 
     if c == 92 {                                 // '\\'
         p = p + 1
@@ -109,7 +110,6 @@ get_class_atom(s: ptr, inclass: int) -> int {
                     js_parse_error(s, "invalid escape sequence in regular expression")
                 } else {
                     // normal_char path below; fall through by re-reading
-                    free(plen)
                     return gca_normal_char(s, source_buf, p)
                 }
             }
@@ -120,14 +120,11 @@ get_class_atom(s: ptr, inclass: int) -> int {
         if (p - source_buf) >= mem.get_uint32(s, consts.JSPS_BUF_LEN) {
             js_parse_error(s, "unexpected end")
         }
-        free(plen)
         return gca_normal_char(s, source_buf, p)
     } else {
-        free(plen)
         return gca_normal_char(s, source_buf, p)
     } }
 
-    free(plen)
     mem.set_uint32(s, consts.JSPS_BUF_POS, p - source_buf)
     return c
 }
@@ -153,11 +150,11 @@ gca_is_special_escape(c: int) -> int {
 
 // normal_char: decode one UTF-8 char at p, advance buf_pos, return code point
 gca_normal_char(s: ptr, source_buf: long, p: long) -> int {
-    plen = malloc(8)
+    long[1] plen_stk_
+    plen = plen_stk_
     int ret = gca_uc_from_utf8(p, plen)
     if ret < 0 { js_parse_error(s, "malformed unicode char") }
     p = p + mem.get_long(plen, 0)
-    free(plen)
     mem.set_uint32(s, consts.JSPS_BUF_POS, p - source_buf)
     return ret
 }
@@ -289,13 +286,13 @@ JS_GetPropertyInternal(ctx: ptr, obj: long, prop: long, allow_tail_call: int) ->
     if want_string_proto != 0 {
         // string receiver: try indexed char access first
         if jstag.is_int(prop) != 0 {
-            objslot = malloc(8)
-            propslot = malloc(8)
+            long[1] objslot_stk_
+            objslot = objslot_stk_
+            long[1] propslot_stk_
+            propslot = propslot_stk_
             mem.set_long(objslot, 0, obj)
             mem.set_long(propslot, 0, prop)
             long ret = js_string_charAt(ctx, objslot, 1, propslot, 0)
-            free(objslot)
-            free(propslot)
             if jstag.is_undefined(ret) == 0 { return ret }
         }
         p = proto_ptr(ctx, consts.JS_CLASS_STRING)
@@ -413,7 +410,8 @@ invoke_getter(ctx: ptr, getter: long, obj: long, allow_tail_call: int) -> long {
         return jstag.make_special(jstag.TAG_EXCEPTION, 1)   // JS_NewTailCall(0)=make_special(EXCEPTION,1+0)
     }
     // GC-root getter, obj across stack check
-    ref = malloc(32)
+    long[4] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, getter)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, 80))
     mem.set_long(ref, 16, obj)
@@ -423,7 +421,6 @@ invoke_getter(ctx: ptr, getter: long, obj: long, allow_tail_call: int) -> long {
     getter = mem.get_long(ref, 0)
     obj = mem.get_long(ref, 16)
     mem.set_ptr(ctx, 80, mem.get_ptr(ref, 8))
-    free(ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     JS_PushArg(ctx, getter)
     JS_PushArg(ctx, obj)

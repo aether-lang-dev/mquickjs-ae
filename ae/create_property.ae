@@ -55,7 +55,8 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
         long empty = (ctx as *JSContext).empty_props
         if arrv == empty {
             // GC-root obj, prop across alloc.js_alloc_props
-            ref = malloc(32)
+            long[4] ref_stk_
+            ref = ref_stk_
             mem.set_long(ref, 0, obj)
             mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
             mem.set_long(ref, 16, prop)
@@ -67,7 +68,6 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
             obj = mem.get_long(ref, 0)
             prop = mem.get_long(ref, 16)
             (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-            free(ref)
 
             if arr2 == null { return null }
             p = jstag.value_to_ptr(obj)
@@ -82,7 +82,8 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
                 new_size = new_size + (new_hash_mask - hash_mask)
             }
             // GC-root obj, prop across vstore.js_resize_value_array2
-            ref = malloc(32)
+            long[4] ref_stk_
+            ref = ref_stk_
             mem.set_long(ref, 0, obj)
             mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
             mem.set_long(ref, 16, prop)
@@ -94,7 +95,6 @@ js_create_property(ctx: ptr, obj: long, prop: long) -> ptr {
             obj = mem.get_long(ref, 0)
             prop = mem.get_long(ref, 16)
             (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-            free(ref)
 
             if jstag.is_exception(new_props) != 0 { return null }
             p = jstag.value_to_ptr(obj)

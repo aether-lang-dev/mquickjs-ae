@@ -48,7 +48,8 @@ js_error_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
     if jstag.is_exception(name) != 0 { return name }
 
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
     strbuf.string_buffer_concat(ctx, b, name)
     p = jstag.value_to_ptr(mem.get_long(this_val, 0))
@@ -60,6 +61,5 @@ js_error_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         strbuf.string_buffer_concat(ctx, b, msg)
     }
     long result = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     return result
 }

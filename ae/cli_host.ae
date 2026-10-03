@@ -82,11 +82,11 @@ js_print(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         long v = ch_argv(argv, i)
         if JS_IsString(ctx, v) != 0 {
             cbuf = malloc(8)           // JSCStringBuf (5 bytes) scratch
-            plen = malloc(8)
+            long[1] plen_stk_
+            plen = plen_stk_
             strp = JS_ToCStringLen(ctx, plen, v, cbuf)
             long len = mem.get_long(plen, 0)
             fwrite(strp, 1, len, mqjs_stdout())
-            free(plen)
             free(cbuf)
         } else {
             JS_PrintValueF(ctx, v, consts.JS_DUMP_LONG)
@@ -102,10 +102,10 @@ js_load(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     cbuf = malloc(24)                  // JSCStringBuf scratch
     filename = JS_ToCString(ctx, ch_argv(argv, 0), cbuf)
     if mem.ptr_to_long(filename) == 0 { free(cbuf)  return jstag.JS_EXCEPTION }
-    plen = malloc(4)
+    long[1] plen_stk_
+    plen = plen_stk_
     buf = load_file_(filename, plen)
     int buf_len = mem.get_int(plen, 0)
-    free(plen)
     long ret = JS_Eval(ctx, buf, buf_len, filename, 0)
     free(buf)
     free(cbuf)
@@ -130,10 +130,10 @@ js_date_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         long ms = os.now_unix_ms()
         val = ms
     } else { if ac == 1 && JS_IsNumber(ctx, ch_argv(argv, 0)) != 0 {
-        pd = malloc(8)
+        long[1] pd_stk_
+        pd = pd_stk_
         int err = JS_ToNumber(ctx, pd, ch_argv(argv, 0))
         val = mem.get_float64(pd, 0)
-        free(pd)
         if err != 0 { return jstag.JS_EXCEPTION }
     } else {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "unsupported Date() parameter")
@@ -296,10 +296,10 @@ eval_buf(ctx: ptr, eval_str: ptr, filename: ptr, is_repl: int, parse_flags: int)
 // load + parse-or-load-bytecode + run a file. If argc>0, expose argv as the
 // global scriptArgs array (GC-rooting val and arr across the allocations).
 eval_file(ctx: ptr, filename: ptr, argc: int, argv: ptr, parse_flags: int, allow_bytecode: int) -> int {
-    plen = malloc(4)
+    long[1] plen_stk_
+    plen = plen_stk_
     buf = load_file_(filename, plen)
     int buf_len = mem.get_int(plen, 0)
-    free(plen)
 
     long val = 0
     if allow_bytecode != 0 && JS_IsBytecode(buf, buf_len) != 0 {
@@ -320,12 +320,14 @@ eval_file(ctx: ptr, filename: ptr, argc: int, argv: ptr, parse_flags: int, allow
 
     if argc > 0 {
         // GC-roots: val_ref then arr_ref (each a 16-byte JSGCRef).
-        val_ref = malloc(16)
+        long[2] val_ref_stk_
+        val_ref = val_ref_stk_
         JS_PushGCRef(ctx, val_ref)
         mem.set_long(val_ref, 0, val)             // val_ref.val = val
         // arr must be created after JS_LoadBytecode()
         long arr = JS_NewArray(ctx, argc)
-        arr_ref = malloc(16)
+        long[2] arr_ref_stk_
+        arr_ref = arr_ref_stk_
         JS_PushGCRef(ctx, arr_ref)
         mem.set_long(arr_ref, 0, arr)             // arr_ref.val = arr
         int i = 0
@@ -335,11 +337,9 @@ eval_file(ctx: ptr, filename: ptr, argc: int, argv: ptr, parse_flags: int, allow
             i = i + 1
         }
         arr = JS_PopGCRef(ctx, arr_ref)           // reload arr after allocs
-        free(arr_ref)
         long obj = JS_GetGlobalObject(ctx)
         JS_SetPropertyStr(ctx, obj, "scriptArgs", arr)
         val = JS_PopGCRef(ctx, val_ref)           // reload val
-        free(val_ref)
     }
 
     val = JS_Run(ctx, val)
@@ -434,10 +434,10 @@ js_setTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if JS_IsFunction(ctx, fn_val) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a function")
     }
-    pdelay = malloc(4)
+    long[1] pdelay_stk_
+    pdelay = pdelay_stk_
     int err = JS_ToInt32(ctx, pdelay, ch_argv(argv, 1))
     int delay = mem.get_int(pdelay, 0)
-    free(pdelay)
     if err != 0 { return jstag.JS_EXCEPTION }
 
     base = mqjs_timer_list()
@@ -459,10 +459,10 @@ js_setTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_clearTimeout(ctx, this_val, argc, argv): cancel timer argv[0].
 js_clearTimeout(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    pid = malloc(4)
+    long[1] pid_stk_
+    pid = pid_stk_
     int err = JS_ToInt32(ctx, pid, ch_argv(argv, 0))
     int timer_id = mem.get_int(pid, 0)
-    free(pid)
     if err != 0 { return jstag.JS_EXCEPTION }
 
     if timer_id >= 0 && timer_id < MAX_TIMERS {

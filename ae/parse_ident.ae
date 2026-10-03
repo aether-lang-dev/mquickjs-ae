@@ -46,7 +46,8 @@ pi_gc_pop(ctx: ptr, ref: ptr) -> long {
 // void js_parse_ident(JSParseState *s, JSToken *token, uint32_t *ppos, int c)
 js_parse_ident(s: ptr, token: ptr, ppos: ptr, c: int) {
     ctx = (s as *JSParseState).ctx
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     if strbuf.string_buffer_push(ctx, b, 16) != 0 { js_parse_error_mem(s) }
     strbuf.string_buffer_putc(ctx, b, c)
     buf = (s as *JSParseState).source_buf
@@ -69,12 +70,11 @@ js_parse_ident(s: ptr, token: ptr, ppos: ptr, c: int) {
 
     mem.set_int(token, TOK_VAL, consts.TOK_IDENT)
     long val2 = strbuf.string_buffer_pop(ctx, b)
-    free(b)
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     pi_gc_push(ctx, ref, val2)
     long val = JS_MakeUniqueString(ctx, val2)
     val2 = pi_gc_pop(ctx, ref)
-    free(ref)
     if jstag.is_exception(val) != 0 { js_parse_error_mem(s) }
     if val != val2 { js_free(ctx, jstag.value_to_ptr(val2)) }
     mem.set_long(token, TOK_VALUE, val)

@@ -42,7 +42,8 @@ js_string_concat_subst(ctx: ptr, b: ptr, str: ptr, rep: ptr, pos: int, end_of_ma
         return scs_call_function(ctx, b, str, rep, pos, capture_buf, captures_len, needle)
     }
 
-    scratch = malloc(24)
+    long[3] scratch_stk_
+    scratch = scratch_stk_
     pr = getpkg.get_string_ptr(ctx, scratch, mem.get_long(rep, 0))
     int rep_len = str_len_of(pr)
     long repbase = mem.ptr_to_long(pr) + consts.STR_BUF
@@ -103,7 +104,6 @@ js_string_concat_subst(ctx: ptr, b: ptr, str: ptr, rep: ptr, pos: int, end_of_ma
             i = j
         }
     }
-    free(scratch)
     return sbconcat.string_buffer_concat_utf8(ctx, b, mem.get_long(rep, 0), 2 * i, 2 * rep_len)
 }
 
@@ -123,12 +123,12 @@ scs_call_function(ctx: ptr, b: ptr, str: ptr, rep: ptr, pos: int, capture_buf: p
                 if jstag.is_exception(val) != 0 { return 0 - 1 }
                 // GC-root val across stack check (PushGCRef clears the slot to
                 // UNDEFINED, so write val AFTER pushing).
-                vref = malloc(16)
+                long[2] vref_stk_
+                vref = vref_stk_
                 vslot = JS_PushGCRef(ctx, vref)
                 mem.set_long(vslot, 0, val)
                 int ret = JS_StackCheck(ctx, 3 + k)
                 val = JS_PopGCRef(ctx, vref)
-                free(vref)
                 if ret != 0 { return 0 - 1 }
             }
             JS_PushArg(ctx, val)

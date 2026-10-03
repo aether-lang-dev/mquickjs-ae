@@ -41,9 +41,9 @@ scs_ba_size(arr: long) -> int { long h = mem.get_long(mem.long_to_ptr(arr), 0)  
 scs_utf8_get(base: long) -> int {
     int b0 = mem.get_byte(mem.long_to_ptr(base), 0)
     if b0 < 0x80 { return b0 }
-    cl = malloc(8)
+    long[1] cl_stk_
+    cl = cl_stk_
     int c = utf8_get(mem.long_to_ptr(base), cl)
-    free(cl)
     return c
 }
 
@@ -51,10 +51,11 @@ scs_utf8_get(base: long) -> int {
 string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
     if jstag.is_exception(mem.get_long(s, consts.SB_VAL)) != 0 { return 0 - 1 }
 
-    buf2 = malloc(24)
+    long[3] buf2_stk_
+    buf2 = buf2_stk_
     p2 = getpkg.get_string_ptr(ctx, buf2, val2)
     int len2 = scs_str_len(p2)
-    if len2 == 0 { free(buf2)  return 0 }
+    if len2 == 0 {  return 0 }
 
     long arrv = 0          // the buffer's byte array value (0 = string mode)
     long val1 = jstag.JS_NULL
@@ -62,14 +63,13 @@ string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
     int has_arr = 0
 
     if JS_IsString(ctx, mem.get_long(s, consts.SB_VAL)) != 0 {
-        buf1 = malloc(24)
+        long[3] buf1_stk_
+        buf1 = buf1_stk_
         p1 = getpkg.get_string_ptr(ctx, buf1, mem.get_long(s, consts.SB_VAL))
         len1 = scs_str_len(p1)
-        free(buf1)
         if len1 == 0 {
             // empty string in buffer: just keep val2
             mem.set_long(s, consts.SB_VAL, val2)
-            free(buf2)
             return 0
         }
         val1 = mem.get_long(s, consts.SB_VAL)
@@ -85,7 +85,6 @@ string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
     if len > consts.JS_STRING_LEN_MAX {
         long e = JS_ThrowError(ctx, consts.JS_CLASS_INTERNAL_ERROR, "string too long")
         mem.set_long(s, consts.SB_VAL, e)
-        free(buf2)
         return 0 - 1
     }
 
@@ -95,24 +94,24 @@ string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
 
     if need_grow != 0 {
         // GC-root val1, val2 across vstore.js_resize_byte_array (double ref)
-        ref = malloc(32)
+        long[4] ref_stk_
+        ref = ref_stk_
         mem.set_long(ref, 0, val1)   mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
         mem.set_long(ref, 16, val2)  mem.set_ptr(ref, 24, mem.long_to_ptr(mem.ptr_to_long(ref)))
         mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.long_to_ptr(mem.ptr_to_long(ref) + 16))
         long newv = vstore.js_resize_byte_array(ctx, mem.get_long(s, consts.SB_VAL), len + 1)
         val1 = mem.get_long(ref, 0)  val2 = mem.get_long(ref, 16)
         mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-        free(ref)
         mem.set_long(s, consts.SB_VAL, newv)
-        if jstag.is_exception(newv) != 0 { free(buf2)  return 0 - 1 }
+        if jstag.is_exception(newv) != 0 {  return 0 - 1 }
         arrv = newv
         if val1 != jstag.JS_NULL {
-            buf1 = malloc(24)
+            long[3] buf1_stk_
+            buf1 = buf1_stk_
             p1 = getpkg.get_string_ptr(ctx, buf1, val1)
             mem.set_int(s, consts.SB_IS_ASCII, scs_is_ascii(p1))
             long abase = mem.ptr_to_long(jstag.value_to_ptr(arrv)) + consts.BA_BUF
             memcpy(mem.long_to_ptr(abase), mem.long_to_ptr(mem.ptr_to_long(p1) + consts.STR_BUF), len1)
-            free(buf1)
         }
         p2 = getpkg.get_string_ptr(ctx, buf2, val2)
     }
@@ -140,7 +139,6 @@ string_buffer_concat_str(ctx: ptr, s: ptr, val2: long) -> int {
     mem.set_int(s, consts.SB_LEN, len)
     int ia = mem.get_int(s, consts.SB_IS_ASCII) & scs_is_ascii(p2)
     mem.set_int(s, consts.SB_IS_ASCII, ia)
-    free(buf2)
     return 0
 }
 

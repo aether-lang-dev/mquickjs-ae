@@ -67,10 +67,12 @@ obj_array_tab_(p: ptr) -> long {
 
 // JSValue js_json_stringify(ctx, this_val, argc, argv)
 js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
     stack_top = ctx_sp_(ctx)
-    nslot = malloc(8)
+    long[1] nslot_stk_
+    nslot = nslot_stk_
 
     int failed = 0
     if JS_StackCheck(ctx, consts.JSON_REC_SIZE) != 0 { failed = 1 }
@@ -117,10 +119,10 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
                         // object
                         if idx == 0 {
                             strbuf.string_buffer_putc(ctx, b, 123)   // '{'
-                            slot_argv = malloc(8)
+                            long[1] slot_argv_stk_
+                            slot_argv = slot_argv_stk_
                             mem.set_long(slot_argv, 0, sp_get(ctx, 0))
                             long keys = js_object_keys(ctx, null, 1, slot_argv)
-                            free(slot_argv)
                             sp_set_(ctx, 2, keys)
                             if jstag.is_exception(keys) != 0 { failed = 1  looping = 0 }
                         }
@@ -193,9 +195,7 @@ js_json_stringify(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         }
     }
 
-    free(nslot)
     long result = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     if failed != 0 {
         ctx_set_sp_(ctx, stack_top)
         return jstag.JS_EXCEPTION

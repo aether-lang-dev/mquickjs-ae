@@ -140,15 +140,15 @@ js_typed_array_subarray(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     pup = mem.long_to_ptr(pu)
     int len = mem.get_uint32(pup, 8)
 
-    slot = malloc(8)
-    if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 0), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 0), 0, len, len) != 0 {  return jstag.JS_EXCEPTION }
     int start = mem.get_int(slot, 0)
     int final = len
     if jstag.is_undefined(mem.get_long(argv, 8)) == 0 {
-        if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 8), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 8), 0, len, len) != 0 {  return jstag.JS_EXCEPTION }
         final = mem.get_int(slot, 0)
     }
-    free(slot)
 
     p = jstag.value_to_ptr(mem.get_long(this_val, 0))
     pup = mem.long_to_ptr(mem.ptr_to_long(p) + 24)
@@ -211,14 +211,15 @@ js_typed_array_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic:
     long len = 0
     long offset = 0
     long buffer = 0
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
 
     long a0 = mem.get_long(argv, 0)
     if JS_IsObject(ctx, a0) == 0 {
-        if JS_ToIndex(ctx, slot, a0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToIndex(ctx, slot, a0) != 0 {  return jstag.JS_EXCEPTION }
         len = mem.get_long(slot, 0)
         buffer = js_array_buffer_alloc(ctx, len << size_log2)
-        if jstag.is_exception(buffer) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if jstag.is_exception(buffer) != 0 {  return jstag.JS_EXCEPTION }
         offset = 0
     } else {
         p = jstag.value_to_ptr(a0)
@@ -227,33 +228,31 @@ js_typed_array_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic:
             long pu = mem.ptr_to_long(p) + 24
             arr = jstag.value_to_ptr(mem.get_long(mem.long_to_ptr(pu), 0))   // array_buffer.byte_buffer
             long byte_length = (mem.get_long(arr, 0) >> 4) & 0xfffffffffffffff  // JSByteArray.size
-            if JS_ToIndex(ctx, slot, mem.get_long(argv, 8)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+            if JS_ToIndex(ctx, slot, mem.get_long(argv, 8)) != 0 {  return jstag.JS_EXCEPTION }
             offset = mem.get_long(slot, 0)
             long align_mask = (1 << size_log2) - 1
-            if (offset & align_mask) != 0 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid offset") }
-            if offset > byte_length { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid offset") }
+            if (offset & align_mask) != 0 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid offset") }
+            if offset > byte_length {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid offset") }
             if jstag.is_undefined(mem.get_long(argv, 16)) != 0 {
-                if (byte_length & align_mask) != 0 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid length") }
+                if (byte_length & align_mask) != 0 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid length") }
                 len = (byte_length - offset) >> size_log2
             } else {
-                if JS_ToIndex(ctx, slot, mem.get_long(argv, 16)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+                if JS_ToIndex(ctx, slot, mem.get_long(argv, 16)) != 0 {  return jstag.JS_EXCEPTION }
                 len = mem.get_long(slot, 0)
-                if (offset + (len << size_log2)) > byte_length { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid length") }
+                if (offset + (len << size_log2)) > byte_length {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid length") }
             }
             buffer = a0
             offset = offset >> size_log2
         } else {
-            free(slot)
             return funcname.js_typed_array_constructor_obj(ctx, this_val, argc, argv, magic)
         }
     }
-    free(slot)
 
-    buf_ref = malloc(16)
+    long[2] buf_ref_stk_
+    buf_ref = buf_ref_stk_
     ta_gc_push(ctx, buf_ref, buffer)
     long obj = JS_NewObjectClass(ctx, magic, consts.SIZEOF_JSTYPEDARRAY)
     buffer = ta_gc_pop(ctx, buf_ref)
-    free(buf_ref)
     if jstag.is_exception(obj) != 0 { return obj }
     p = jstag.value_to_ptr(obj)
     long ou = mem.ptr_to_long(p) + 24
@@ -271,10 +270,10 @@ js_typed_array_set(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if p == null { return jstag.JS_EXCEPTION }
     int offset = 0
     if argc > 1 {
-        slot = malloc(8)
-        if JS_ToInt32Sat(ctx, slot, mem.get_long(argv, 8)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        long[1] slot_stk_
+        slot = slot_stk_
+        if JS_ToInt32Sat(ctx, slot, mem.get_long(argv, 8)) != 0 {  return jstag.JS_EXCEPTION }
         offset = mem.get_int(slot, 0)
-        free(slot)
     }
     if offset < 0 { return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid array length") }
     long a0 = mem.get_long(argv, 0)
@@ -318,10 +317,10 @@ js_typed_array_set(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
     if handled == 0 {
         if src_cid < consts.JS_CLASS_UINT8C_ARRAY {
-            slot = malloc(8)
-            if ops.js_get_length32(ctx, slot, a0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+            long[1] slot_stk_
+            slot = slot_stk_
+            if ops.js_get_length32(ctx, slot, a0) != 0 {  return jstag.JS_EXCEPTION }
             src_len = mem.get_uint32(slot, 0)
-            free(slot)
             if src_len > dst_len { return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid array length") }
             if offset > (dst_len - src_len) { return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid array length") }
         }

@@ -21,8 +21,9 @@ js_string_toLowerCase(ctx: ptr, this_val: ptr, argc: int, argv: ptr, to_lower: i
     if jstag.is_exception(s) != 0 { return s }
     int len = js_string_len(ctx, s)
 
-    b = malloc(24)
-    if strbuf.string_buffer_push(ctx, b, len) != 0 { free(b)  return jstag.JS_EXCEPTION }
+    long[3] b_stk_
+    b = b_stk_
+    if strbuf.string_buffer_push(ctx, b, len) != 0 {  return jstag.JS_EXCEPTION }
     int i = 0
     while i < len {
         int c = string_getcp(ctx, s, i, 0)
@@ -39,6 +40,5 @@ js_string_toLowerCase(ctx: ptr, this_val: ptr, argc: int, argv: ptr, to_lower: i
         i = i + 1
     }
     long result = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     return result
 }

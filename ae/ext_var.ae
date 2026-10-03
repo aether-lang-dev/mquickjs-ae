@@ -69,7 +69,8 @@ add_func_ext_var(s: ptr, fobj: long, name: long, decl: int) -> int {
     if len >= consts.JS_MAX_LOCAL_VARS { js_parse_error(s, "too many variable references") }
 
     // GC-root func then name across js_resize_value_array
-    ref = malloc(32)
+    long[4] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, fobj)                                  // func ref val
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     mem.set_long(ref, 16, name)                                 // name ref val
@@ -82,7 +83,6 @@ add_func_ext_var(s: ptr, fobj: long, name: long, decl: int) -> int {
     name = mem.get_long(ref, 16)
     fobj = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     if jstag.is_exception(new_ext_vars) != 0 { js_parse_error_mem(s) }
 

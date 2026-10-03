@@ -40,7 +40,8 @@ vp_write(write_func: ptr, opaque: ptr, buf: ptr, len: long) {
 vp_pad(write_func: ptr, opaque: ptr, c: int, width: int, len: int) {
     if len >= width { return }
     int w = width - len
-    pbuf = malloc(16)
+    long[2] pbuf_stk_
+    pbuf = pbuf_stk_
     long fill = vp_min(16, w)
     memset(pbuf, c, fill)
     while w != 0 {
@@ -48,7 +49,6 @@ vp_pad(write_func: ptr, opaque: ptr, c: int, width: int, len: int) {
         vp_write(write_func, opaque, pbuf, l)
         w = w - l
     }
-    free(pbuf)
 }
 
 vp_str_len(p: ptr) -> long { return mem.get_long(p, 0) >> 7 }
@@ -57,7 +57,8 @@ vp_mtag(p: ptr) -> int { return (mem.get_long(p, 0) >> 1) & 7 }
 // void js_vprintf(JSWriteFunc *write_func, void *opaque, const char *fmt, va_list ap)
 js_vprintf(write_func: ptr, opaque: ptr, fmt: ptr, vap: ptr) {
     long f = mem.ptr_to_long(fmt)
-    tmp = malloc(32)
+    long[4] tmp_stk_
+    tmp = tmp_stk_
 
     while mem.get_byte(mem.long_to_ptr(f), 0) != 0 {
         long pstart = f
@@ -70,7 +71,7 @@ js_vprintf(write_func: ptr, opaque: ptr, fmt: ptr, vap: ptr) {
         if f > pstart {
             vp_write(write_func, opaque, mem.long_to_ptr(pstart), f - pstart)
         }
-        if mem.get_byte(mem.long_to_ptr(f), 0) == 0 { free(tmp)  return }
+        if mem.get_byte(mem.long_to_ptr(f), 0) == 0 {  return }
         f = f + 1   // skip '%'
 
         // flags
@@ -194,7 +195,7 @@ js_vprintf(write_func: ptr, opaque: ptr, fmt: ptr, vap: ptr) {
             }
             flags = flags & (0 - 1 - consts.PF_ZERO_PAD)
         } else {
-            free(tmp)  return    // unknown conversion: stop (C error path)
+  return    // unknown conversion: stop (C error path)
         } } } } } } } }
 
         if emit != 0 {
@@ -211,5 +212,4 @@ js_vprintf(write_func: ptr, opaque: ptr, fmt: ptr, vap: ptr) {
             }
         }
     }
-    free(tmp)
 }

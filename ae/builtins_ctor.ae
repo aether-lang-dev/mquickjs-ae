@@ -48,9 +48,9 @@ js_number_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if argc == 0 {
         return jstag.new_short_int(0)
     }
-    slot = malloc(8)
-    if JS_ToNumber(ctx, slot, argv_get_(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToNumber(ctx, slot, argv_get_(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
-    free(slot)
     return JS_NewFloat64(ctx, d)
 }

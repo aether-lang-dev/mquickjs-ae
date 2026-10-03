@@ -299,7 +299,8 @@ ec_gc_pop(ctx: ptr, ref: ptr) -> long {
 emit_break(s: ptr, label_name: long, is_cont: int) {
     ctx = (s as *JSParseState).ctx
     long top_val = (s as *JSParseState).top_break
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     int done = 0
     while done == 0 {
         if jstag.is_null(top_val) != 0 { done = 1 }
@@ -323,7 +324,6 @@ emit_break(s: ptr, label_name: long, is_cont: int) {
                 plabel = mem.long_to_ptr(mem.ptr_to_long(top) + plabel_off)
                 if jshelpers.label_is_none(mem.get_long(plabel, 0)) == 0 {
                     emit_goto(s, opcodes.OP_goto, plabel)
-                    free(ref)
                     return
                 }
             }
@@ -345,7 +345,6 @@ emit_break(s: ptr, label_name: long, is_cont: int) {
             top_val = mem.get_long(top, consts.BE_PREV2)
         }
     }
-    free(ref)
     if label_name == JS_NULL {
         if is_cont != 0 { js_parse_error(s, "continue must be inside loop") }
         js_parse_error(s, "break must be inside loop or switch")
@@ -360,10 +359,10 @@ emit_pc2line(s: ptr, pos: int) {
     long src = mem.ptr_to_long(mem.get_ptr(s, consts.JSPS_SOURCE_BUF))
     int prev_pos = mem.get_uint32(s, consts.JSPS_PC2LINE_SOURCE_POS)
 
-    scratch = malloc(4)
+    long[1] scratch_stk_
+    scratch = scratch_stk_
     int line_delta = get_line_col_delta(scratch, mem.long_to_ptr(src), prev_pos, pos)
     int col_delta = mem.get_int(scratch, 0)
-    free(scratch)
 
     pc2line.put_sgolomb(s, line_delta)
     if mem.get_byte(s, consts.JSPS_HAS_COLUMN) != 0 {

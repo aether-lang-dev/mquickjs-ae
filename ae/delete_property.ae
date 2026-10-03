@@ -50,14 +50,14 @@ hn_set(pr: long, hn: long) {
 // JSValue JS_DeleteProperty(JSContext *ctx, JSValue this_obj, JSValue prop)
 JS_DeleteProperty(ctx: ptr, this_obj: long, prop: long) -> long {
     // GC-root this_obj across JS_ToPropertyKey
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, this_obj)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     prop = JS_ToPropertyKey(ctx, prop)
     this_obj = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
     if jstag.is_exception(prop) != 0 { return prop }
 
     if jstag.is_ptr(this_obj) == 0 { return jstag.JS_TRUE }
@@ -79,14 +79,14 @@ JS_DeleteProperty(ctx: ptr, this_obj: long, prop: long) -> long {
             if (mem.long_to_ptr(pr) as *JSProperty).key == prop {
                 // found
                 if dp_is_rom(ctx, mem.ptr_to_long(jstag.value_to_ptr(arrv))) != 0 {
-                    ref2 = malloc(16)
+                    long[2] ref2_stk_
+                    ref2 = ref2_stk_
                     mem.set_long(ref2, 0, this_obj)
                     mem.set_ptr(ref2, 8, (ctx as *JSContext).top_gc_ref)
                     (ctx as *JSContext).top_gc_ref = ref2
                     int ret = props.js_update_props(ctx, this_obj)
                     this_obj = mem.get_long(ref2, 0)
                     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref2, 8)
-                    free(ref2)
                     if ret != 0 { return jstag.JS_EXCEPTION }
                     p = jstag.value_to_ptr(this_obj)
                     arrv = (p as *JSObject).props

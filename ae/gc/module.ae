@@ -193,7 +193,8 @@ gm_is_marked(val: long) -> int {
 
 // void gc_mark_all(JSContext *ctx, BOOL keep_atoms)
 gc_mark_all(ctx: ptr, keep_atoms: int) {
-    s = malloc(40)
+    long[5] s_stk_
+    s = s_stk_
     mem.set_ptr(s, consts.MS_CTX, ctx)
     mem.set_int(s, consts.MS_OVERFLOW, 0)
     long sp = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_SP))
@@ -274,7 +275,6 @@ gc_mark_all(ctx: ptr, keep_atoms: int) {
     gm_update_unique_strings(ctx)
     gm_update_pos_cache(ctx)
     gm_sweep(ctx)
-    free(s)
 }
 
 gm_update_unique_strings(ctx: ptr) {

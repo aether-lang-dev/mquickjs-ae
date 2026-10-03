@@ -45,32 +45,32 @@ js_math_sign(a: float) -> float {
 
 // double js_math_fround(double a) — round to float32 precision
 js_math_fround(a: float) -> float {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     mem.set_float32(slot, 0, a)
     float r = mem.get_float32(slot, 0)
-    free(slot)
     return r
 }
 
 // JSValue js_math_atan2(ctx, this_val, argc, argv)
 js_math_atan2(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    sy = malloc(8)
-    if JS_ToNumber(ctx, sy, argv_get_(argv, 0)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
+    long[1] sy_stk_
+    sy = sy_stk_
+    if JS_ToNumber(ctx, sy, argv_get_(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float y = mem.get_float64(sy, 0)
-    if JS_ToNumber(ctx, sy, argv_get_(argv, 1)) != 0 { free(sy)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, sy, argv_get_(argv, 1)) != 0 {  return jstag.JS_EXCEPTION }
     float x = mem.get_float64(sy, 0)
-    free(sy)
     return JS_NewFloat64(ctx, js_atan2(y, x))
 }
 
 // JSValue js_math_pow(ctx, this_val, argc, argv)
 js_math_pow(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    s = malloc(8)
-    if JS_ToNumber(ctx, s, argv_get_(argv, 0)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    long[1] s_stk_
+    s = s_stk_
+    if JS_ToNumber(ctx, s, argv_get_(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     float x = mem.get_float64(s, 0)
-    if JS_ToNumber(ctx, s, argv_get_(argv, 1)) != 0 { free(s)  return jstag.JS_EXCEPTION }
+    if JS_ToNumber(ctx, s, argv_get_(argv, 1)) != 0 {  return jstag.JS_EXCEPTION }
     float y = mem.get_float64(s, 0)
-    free(s)
     return JS_NewFloat64(ctx, js_pow(x, y))
 }
 
@@ -126,18 +126,19 @@ js_math_min_max(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lo
         }
         generic = 1
     } else {
-        s = malloc(8)
-        if JS_ToNumber(ctx, s, a0) != 0 { free(s)  return jstag.JS_EXCEPTION }
+        long[1] s_stk_
+        s = s_stk_
+        if JS_ToNumber(ctx, s, a0) != 0 {  return jstag.JS_EXCEPTION }
         r = mem.get_float64(s, 0)
-        free(s)
         i = 1
         generic = 1
     }
 
     // generic case: r holds the running result, scan from i
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     while i < argc {
-        if JS_ToNumber(ctx, slot, argv_get_(argv, i)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToNumber(ctx, slot, argv_get_(argv, i)) != 0 {  return jstag.JS_EXCEPTION }
         float a = mem.get_float64(slot, 0)
         if f_isnan_(r) == 0 {
             if f_isnan_(a) != 0 {
@@ -149,6 +150,5 @@ js_math_min_max(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lo
         }
         i = i + 1
     }
-    free(slot)
     return JS_NewFloat64(ctx, r)
 }

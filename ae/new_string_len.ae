@@ -47,9 +47,9 @@ JS_NewStringLen(ctx: ptr, buf: ptr, len: long) -> long {
         // utf8_get(buf): ASCII fast path inline, else utf8_get.
         int c = b0
         if b0 >= 0x80 {
-            cl = malloc(8)
+            long[1] cl_stk_
+            cl = cl_stk_
             c = utf8_get(buf, cl)
-            free(cl)
         }
         return new_string_char_(c)
     }

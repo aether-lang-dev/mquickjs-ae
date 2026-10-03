@@ -46,12 +46,13 @@ js_string_indexOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr, lastIndexOf: in
     int start = 0
     int stop = 0
     int inc = 1
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
 
     if lastIndexOf != 0 {
         int pos = len - v_len
         if argc > 1 {
-            if JS_ToNumber(ctx, slot, mem.get_long(argv, 8)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+            if JS_ToNumber(ctx, slot, mem.get_long(argv, 8)) != 0 {  return jstag.JS_EXCEPTION }
             float d = mem.get_float64(slot, 0)
             if f_isnan_(d) == 0 {
                 if d <= 0.0 { pos = 0 }
@@ -67,14 +68,13 @@ js_string_indexOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr, lastIndexOf: in
     } else {
         int pos = 0
         if argc > 1 {
-            if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 8), 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+            if JS_ToInt32Clamp(ctx, slot, mem.get_long(argv, 8), 0, len, 0) != 0 {  return jstag.JS_EXCEPTION }
             pos = mem.get_int(slot, 0)
         }
         start = pos
         stop = len - v_len
         inc = 1
     }
-    free(slot)
 
     int ret = 0 - 1
     int can_scan = 0

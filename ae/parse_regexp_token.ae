@@ -52,7 +52,8 @@ js_parse_regexp_token(s: ptr, ppos: ptr) {
     long pos = mem.get_uint32(ppos, 0) & 0xffffffff
     long start_pos = pos
     int in_class = 0
-    clen = malloc(8)
+    long[1] clen_stk_
+    clen = clen_stk_
 
     int looping = 1
     while looping != 0 {
@@ -77,15 +78,14 @@ js_parse_regexp_token(s: ptr, ppos: ptr) {
     }
     long end_pos = pos - 1
 
-    fslot = malloc(8)
+    long[1] fslot_stk_
+    fslot = fslot_stk_
     long fclen = js_parse_regexp_flags(fslot, mem.long_to_ptr(mem.ptr_to_long(buf) + pos))
     int re_flags = mem.get_int(fslot, 0)
-    free(fslot)
     pos = pos + fclen
     if ident_next(mem.get_byte(buf, pos)) != 0 {
         js_parse_error(s, "invalid regular expression flags")
     }
-    free(clen)
 
     int srclen = end_pos - start_pos
     p = alloc.js_alloc_string(ctx, srclen)

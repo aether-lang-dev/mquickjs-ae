@@ -68,9 +68,9 @@ string_get_cp(p: ptr) -> int {
     lead = mem.long_to_ptr(addr)
     // utf8_get fast path: ascii byte is itself
     if b < 0x80 { return b }
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int c = utf8_get(lead, slot)
-    free(slot)
     return c
 }
 

@@ -68,10 +68,10 @@ eval_file(ctx: ptr, source: ptr, filename: ptr) -> long {
 
 // result_int — coerce a result value to a 32-bit int (0 on failure).
 result_int(ctx: ptr, val: long) -> int {
-    slot = malloc(4)
+    long[1] slot_stk_
+    slot = slot_stk_
     int err = JS_ToInt32(ctx, slot, val)
     int out = mem.get_int(slot, 0)
-    free(slot)
     if err != 0 { return 0 }
     return out
 }
@@ -80,15 +80,15 @@ result_int(ctx: ptr, val: long) -> int {
 // Caller frees with free_cstring. Returns null on failure.
 result_string(ctx: ptr, val: long) -> ptr {
     cbuf = malloc(24)                  // JSCStringBuf scratch
-    plen = malloc(8)
+    long[1] plen_stk_
+    plen = plen_stk_
     strp = JS_ToCStringLen(ctx, plen, val, cbuf)
-    if mem.ptr_to_long(strp) == 0 { free(plen)  free(cbuf)  return mem.long_to_ptr(0) }
+    if mem.ptr_to_long(strp) == 0 {  free(cbuf)  return mem.long_to_ptr(0) }
     long n = mem.get_long(plen, 0)
     out = malloc(n + 1)
     mem.copy(out, strp, n)
     int ni = n
     mem.set_byte(out, ni, 0)
-    free(plen)
     free(cbuf)
     return out
 }

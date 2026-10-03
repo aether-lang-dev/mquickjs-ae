@@ -52,8 +52,10 @@ js_object_defineProperty(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
     long setter = jstag.JS_UNDEFINED
     int flags = 0
 
-    val_ref = malloc(16)
-    getter_ref = malloc(16)
+    long[2] val_ref_stk_
+    val_ref = val_ref_stk_
+    long[2] getter_ref_stk_
+    getter_ref = getter_ref_stk_
     int bad = 0
     int exc = 0
 
@@ -90,8 +92,6 @@ js_object_defineProperty(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
             }
         }
     }
-    free(getter_ref)
-    free(val_ref)
 
     if exc != 0 { return jstag.JS_EXCEPTION }
     if bad != 0 { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "invalid getter or setter") }

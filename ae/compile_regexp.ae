@@ -27,10 +27,10 @@ js_compile_regexp(ctx: ptr, pattern: long, flags: long) -> long {
     if jstag.is_undefined(flags) == 0 {
         cbuf = malloc(24)                   // JSStringCharBuf scratch (JSString + buf[5])
         ps = getpkg.get_string_ptr(ctx, cbuf, flags)
-        pre = malloc(4)
+        long[1] pre_stk_
+        pre = pre_stk_
         long len = js_parse_regexp_flags(pre, mem.long_to_ptr(mem.ptr_to_long(ps) + consts.STR_BUF))
         re_flags = mem.get_int(pre, 0)
-        free(pre)
         long slen = cr_str_len(ps)
         free(cbuf)
         if len != slen {

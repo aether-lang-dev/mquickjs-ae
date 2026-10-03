@@ -91,7 +91,8 @@ lx_gc_call(ctx: ptr, r: ptr, kind: int, n: int) -> int {
     long saved_cptr = mem.get_long(r, R_CPTR) - mem.get_long(r, R_CBUF)
     (ctx as *JSContext).sp = mem.long_to_ptr(mem.get_long(r, R_SP))
 
-    refs = malloc(48)
+    long[6] refs_stk_
+    refs = refs_stk_
     mem.set_long(refs, 0, mem.get_long(r, R_CAPTURE_BUF))
     mem.set_ptr(refs, 8, (ctx as *JSContext).top_gc_ref)
     mem.set_long(refs, 16, mem.get_long(r, R_BYTE_CODE))
@@ -113,7 +114,6 @@ lx_gc_call(ctx: ptr, r: ptr, kind: int, n: int) -> int {
     mem.set_long(r, R_BYTE_CODE, mem.get_long(refs, 16))
     mem.set_long(r, R_STR, mem.get_long(refs, 32))
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(refs, 8)
-    free(refs)
 
     if failed != 0 { return 0 - 1 }
     lx_rederive(r, saved_pc, saved_cptr)
@@ -180,7 +180,8 @@ lx_save_capture_check(ctx: ptr, r: ptr, idx: int, value: int) -> int {
 
 // int lre_exec(JSContext *ctx, JSValue capture_buf, JSValue byte_code, JSValue str, int cindex)
 lre_exec(ctx: ptr, capture_buf: long, byte_code: long, str: long, cindex: int) -> int {
-    r = malloc(96)
+    long[12] r_stk_
+    r = r_stk_
     mem.set_long(r, R_BYTE_CODE, byte_code)
     mem.set_long(r, R_STR, str)
     mem.set_long(r, R_CAPTURE_BUF, capture_buf)
@@ -204,7 +205,8 @@ lre_exec(ctx: ptr, capture_buf: long, byte_code: long, str: long, cindex: int) -
     mem.set_long(r, R_BP, initial_sp)
     mem.set_long(r, R_INITIAL_SP, initial_sp)
 
-    plen = malloc(8)
+    long[1] plen_stk_
+    plen = plen_stk_
     int retval = 0
     int running = 1
     int block = 0   // 0 dispatch, 1 no_match
@@ -264,8 +266,6 @@ lre_exec(ctx: ptr, capture_buf: long, byte_code: long, str: long, cindex: int) -
         }
     }
 
-    free(plen)
-    free(r)
     return retval
 }
 

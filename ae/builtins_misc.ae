@@ -50,31 +50,31 @@ js_array_isArray(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_global_isNaN(ctx, this_val, argc, argv)
 js_global_isNaN(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int err = JS_ToNumber(ctx, slot, argv_get_(argv, 0))
-    if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if err != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
-    free(slot)
     return jstag.new_bool(f_isnan_(d))
 }
 
 // JSValue js_global_isFinite(ctx, this_val, argc, argv)
 js_global_isFinite(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int err = JS_ToNumber(ctx, slot, argv_get_(argv, 0))
-    if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if err != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
-    free(slot)
     return jstag.new_bool(f_isfinite_(d))
 }
 
 // JSValue js_math_clz32(ctx, this_val, argc, argv)
 js_math_clz32(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int err = JS_ToUint32(ctx, slot, argv_get_(argv, 0))
-    if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if err != 0 {  return jstag.JS_EXCEPTION }
     long a = mem.get_uint32(slot, 0) & 0xffffffff
-    free(slot)
     int r = 32
     if a != 0 { r = mem.clz32(a) }
     return JS_NewInt32(ctx, r)
@@ -82,14 +82,14 @@ js_math_clz32(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_math_imul(ctx, this_val, argc, argv) — 32-bit wraparound mul
 js_math_imul(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     int erra = JS_ToInt32(ctx, slot, argv_get_(argv, 0))
-    if erra != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if erra != 0 {  return jstag.JS_EXCEPTION }
     int a = mem.get_int(slot, 0)
     int errb = JS_ToInt32(ctx, slot, argv_get_(argv, 1))
-    if errb != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if errb != 0 {  return jstag.JS_EXCEPTION }
     int b = mem.get_int(slot, 0)
-    free(slot)
     // (uint32_t)a * (uint32_t)b, truncated to 32 bits
     long prod = (a & 0xffffffff) * (b & 0xffffffff)
     int r = prod & 0xffffffff

@@ -35,14 +35,14 @@ js_dtoa2(ctx: ptr, d: float, radix: int, n_digits: int, flags: int) -> long {
     long str = jstag.value_from_ptr(p)
 
     // GC-root str across the second allocation
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, str)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     tmp_arr = js_alloc_byte_array(ctx, consts.SIZEOF_JSDTOATEMPMEM)
     str = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
     if tmp_arr == null { return jstag.JS_EXCEPTION }
 
     p = jstag.value_to_ptr(str)
@@ -66,14 +66,14 @@ js_atod1(ctx: ptr, pres: ptr, val: long, radix: int, flags: int) -> int {
     }
 
     // GC-root val across js_alloc_byte_array
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, val)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     tmp_arr = js_alloc_byte_array(ctx, consts.SIZEOF_JSATODTEMPMEM)
     val = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
     if tmp_arr == null {
         mem.set_float64(pres, 0, d2_nan())
         return 0 - 1
@@ -95,10 +95,10 @@ js_atod1(ctx: ptr, pres: ptr, val: long, radix: int, flags: int) -> int {
     }
 
     if empty == 0 {
-        pnext = malloc(8)
+        long[1] pnext_stk_
+        pnext = pnext_stk_
         d = js_atod(mem.long_to_ptr(p1), pnext, radix, flags, mem.long_to_ptr(tmpmem))
         long rend = mem.get_long(pnext, 0)
-        free(pnext)
         js_free(ctx, tmp_arr)
         if (flags & consts.JS_ATOD_TOSTRING) != 0 {
             long aftpos = rend + skip_spaces(mem.long_to_ptr(rend))

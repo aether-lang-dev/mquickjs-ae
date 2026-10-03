@@ -210,10 +210,10 @@ term_forward_char(s: ptr) {
     cmd_buf = mem.get_ptr(s, RS_CMD_BUF)
 
     if cmd_buf_index < cmd_buf_len {
-        slot = malloc(8)
+        long[1] slot_stk_
+        slot = slot_stk_
         utf8_get_len(mem.ptr_to_long(cmd_buf) + cmd_buf_index, slot)
         cmd_buf_index = cmd_buf_index + mem.get_long(slot, 0)
-        free(slot)
     }
     mem.set_int(s, RS_CMD_BUF_INDEX, cmd_buf_index)
 }
@@ -224,10 +224,10 @@ term_delete_char(s: ptr) {
     cmd_buf = mem.get_ptr(s, RS_CMD_BUF)
 
     if cmd_buf_index < cmd_buf_len {
-        slot = malloc(8)
+        long[1] slot_stk_
+        slot = slot_stk_
         utf8_get_len(mem.ptr_to_long(cmd_buf) + cmd_buf_index, slot)
         int c_len = mem.get_long(slot, 0)
-        free(slot)
         term_kill_region(s, cmd_buf_index + c_len, 0)
     }
 }
@@ -432,7 +432,8 @@ term_update(s: ptr) {
     int cursor_pos = mem.get_int(s, RS_CURSOR_POS)
 
     int new_cursor_pos = 0
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
 
     if cmd_updated != 0 {
         move_cursor(s, -cursor_pos)
@@ -443,7 +444,8 @@ term_update(s: ptr) {
         get_color = mem.get_ptr(s, RS_GET_COLOR)
         int last_color = COLOR_NONE
         int color_len = 0
-        len_slot = malloc(8)
+        long[1] len_slot_stk_
+        len_slot = len_slot_stk_
 
         mem.set_byte(cmd_buf, cmd_buf_len, 0) // trailing NUL eases colorization
 
@@ -505,7 +507,6 @@ term_update(s: ptr) {
         if last_color != COLOR_NONE {
             term_put_color(COLOR_NONE)
         }
-        free(len_slot)
 
         if i == cmd_buf_index {
             new_cursor_pos = cursor_pos
@@ -543,7 +544,6 @@ term_update(s: ptr) {
         }
     }
 
-    free(slot)
     // Sync the tracked terminal column back to the struct: the redraw loop
     // (and the cursor-only branch's calc) updated the local copy, but
     // move_cursor reads/writes RS_CURSOR_X directly.

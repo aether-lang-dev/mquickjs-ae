@@ -78,7 +78,8 @@ js_new_c_function_proto(ctx: ptr, func_idx: int, proto: long, has_params: int, p
     if has_params == 0 { extra = consts.SIZEOF_CFUNCDATA - consts.SIZEOF_JSVALUE }
 
     // GC-root params across JS_NewObjectProtoClass1
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, params)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
@@ -87,7 +88,6 @@ js_new_c_function_proto(ctx: ptr, func_idx: int, proto: long, has_params: int, p
 
     params = mem.get_long(ref, 0)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-    free(ref)
 
     if p == null { return jstag.JS_EXCEPTION }
     mem.set_int(p, consts.CFUNC_IDX, func_idx)

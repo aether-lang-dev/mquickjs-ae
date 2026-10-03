@@ -150,19 +150,19 @@ js_parse_logical_and_or(s: ptr, st: int, parse_flags: int) -> int {
 // emit.emit_goto / emit.emit_label take JSValue* and may mutate the label
 // (backpatch-chain head / resolved flag). Return the updated value.
 emit_goto_val_(s: ptr, opcode: int, label: long) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     mem.set_long(slot, 0, label)
     emit.emit_goto(s, opcode, slot)
     long out = mem.get_long(slot, 0)
-    free(slot)
     return out
 }
 emit_label_val_(s: ptr, label: long) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     mem.set_long(slot, 0, label)
     emit.emit_label(s, slot)
     long out = mem.get_long(slot, 0)
-    free(slot)
     return out
 }
 
@@ -226,14 +226,14 @@ js_parse_assign_expr(s: ptr, st: int, parse_flags: int) -> int {
 
         int op_source_pos = tok_source_pos_(s)
         next_token(s)
-        lv = malloc(12)
+        long[2] lv_stk_
+        lv = lv_stk_
         int keep = 1
         if op == 61 { keep = 0 }
         getpkg.get_lvalue(s, lv, mem.long_to_ptr(mem.ptr_to_long(lv) + 4), mem.long_to_ptr(mem.ptr_to_long(lv) + 8), keep)
         int opcode = mem.get_int(lv, 0)
         int var_idx = mem.get_int(lv, 4)
         int source_pos = mem.get_uint32(lv, 8)
-        free(lv)
 
         // PARSE_CALL_SAVE6(s, 0, assign_expr, pf & ~consts.PF_DROP,
         //   op, opcode, var_idx, parse_flags, op_source_pos, source_pos)
@@ -527,12 +527,12 @@ js_parse_unary(s: ptr, st: int, parse_flags: int) -> int {
         int op_source_pos = pop_int_(s)
         parse_flags = pop_int_(s)
         int op = pop_int_(s)
-        lv = malloc(12)
+        long[2] lv_stk_
+        lv = lv_stk_
         getpkg.get_lvalue(s, lv, mem.long_to_ptr(mem.ptr_to_long(lv) + 4), mem.long_to_ptr(mem.ptr_to_long(lv) + 8), 1)
         int opcode = mem.get_int(lv, 0)
         int var_idx = mem.get_int(lv, 4)
         int source_pos = mem.get_uint32(lv, 8)
-        free(lv)
         emit.emit_op_pos(s, opcodes.OP_dec + op - consts.TOK_DEC, op_source_pos)
         int special = consts.PUT_LVALUE_KEEP_TOP
         if may_drop_result(s, parse_flags) != 0 {
@@ -905,10 +905,10 @@ parse_primary(s: ptr, parse_flags: int) -> int {
 // enc() when a field value sub-call is issued (resumed at state 1).
 object_loop_(s: ptr, parse_flags: int, has_proto: int, count_pos: int) -> int {
     while tok_val_(s) != 125 {   // '}'
-        nslot = malloc(8)
+        long[1] nslot_stk_
+        nslot = nslot_stk_
         int prop_type = js_parse_property_name(s, nslot)
         long name = mem.get_long(nslot, 0)
-        free(nslot)
         int prop_idx = 0 - 1
         if prop_type == consts.PARSE_PROP_FIELD {
             if name == atom_(s, consts.JS_ATOM___proto__) {
@@ -1100,12 +1100,12 @@ postfix_loop(s: ptr, parse_flags: int, is_new: int) -> int {
             int op = t
             int op_source_pos = tok_source_pos_(s)
             next_token(s)
-            lv = malloc(12)
+            long[2] lv_stk_
+            lv = lv_stk_
             getpkg.get_lvalue(s, lv, mem.long_to_ptr(mem.ptr_to_long(lv) + 4), mem.long_to_ptr(mem.ptr_to_long(lv) + 8), 1)
             int opcode = mem.get_int(lv, 0)
             int var_idx = mem.get_int(lv, 4)
             int source_pos = mem.get_uint32(lv, 8)
-            free(lv)
             if may_drop_result(s, parse_flags) != 0 {
                 set_dropped(s, 1)
                 emit.emit_op_pos(s, opcodes.OP_dec + op - consts.TOK_DEC, op_source_pos)

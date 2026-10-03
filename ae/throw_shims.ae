@@ -51,17 +51,17 @@ js_throw_bytecode_expected(ctx: ptr) -> long {
 
 // JSValue js_tostring_mtag_str(JSContext *ctx, int mtag)
 js_tostring_mtag_str(ctx: ptr, mtag: int) -> long {
-    buf = malloc(32)
+    long[4] buf_stk_
+    buf = buf_stk_
     js_snprintf(buf, 32, "[mtag %d]", mtag)
     long s = JS_NewString(ctx, buf)
-    free(buf)
     return s
 }
 
 // void js_emit_u_escape(JSContext *ctx, StringBuffer *b, int c)
 js_emit_u_escape(ctx: ptr, b: ptr, c: int) {
-    buf = malloc(7)
+    long[1] buf_stk_
+    buf = buf_stk_
     js_snprintf(buf, 7, "\\u%04x", c)
     strbuf.string_buffer_puts(ctx, b, buf)
-    free(buf)
 }

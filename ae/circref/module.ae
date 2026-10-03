@@ -75,7 +75,8 @@ find_line_col(pcol_num: ptr, b: ptr, pc: int) -> int {
     if pc < pos { pc = pos }
 
     // scratch cells for the pc2line.get_pc2line out-params
-    scratch = malloc(16)
+    long[2] scratch_stk_
+    scratch = scratch_stk_
     mem.set_int(scratch, 0, 1)    // line_num
     mem.set_int(scratch, 4, 1)    // col_num
     mem.set_uint32(scratch, 8, 0) // pc2line_pos
@@ -96,7 +97,6 @@ find_line_col(pcol_num: ptr, b: ptr, pc: int) -> int {
         }
     }
 
-    free(scratch)
     if found == 0 { mem.set_int(pcol_num, 0, 0) }
     return ret_line
 }

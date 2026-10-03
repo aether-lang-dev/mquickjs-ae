@@ -47,13 +47,13 @@ cpool_add(s: ptr, val: long) -> int {
 
     if cpool_len > 65535 { js_parse_error(s, "too many constants") }
 
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     cp_gc_push(ctx, ref, val)
     int new_size = cpool_len + 1
     if new_size < 4 { new_size = 4 }
     long new_cpool = js_resize_value_array(ctx, mem.get_long(b, consts.FB_CPOOL_OFF), new_size)
     val = cp_gc_pop(ctx, ref)
-    free(ref)
     if jstag.is_exception(new_cpool) != 0 { js_parse_error_mem(s) }
 
     b = jstag.value_to_ptr((s as *JSParseState).cur_func)

@@ -49,10 +49,10 @@ js_array_join(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         long u = mem.ptr_to_long(p) + consts.OFFSETOF_JSOBJECT_U
         len = mem.get_uint32(mem.long_to_ptr(u), 8)
     } else {
-        slot = malloc(8)
-        if ops.js_get_length32(ctx, slot, tv) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        long[1] slot_stk_
+        slot = slot_stk_
+        if ops.js_get_length32(ctx, slot, tv) != 0 {  return jstag.JS_EXCEPTION }
         len = mem.get_uint32(slot, 0)
-        free(slot)
     }
 
     long sep = 0
@@ -68,9 +68,11 @@ js_array_join(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         sep = jstag.make_special(jstag.TAG_STRING_CHAR, 44)
     }
 
-    sep_ref = malloc(16)
+    long[2] sep_ref_stk_
+    sep_ref = sep_ref_stk_
     gc_push_(ctx, sep_ref, sep)
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
 
     int i = 0
@@ -108,8 +110,6 @@ js_array_join(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
     long result = strbuf.string_buffer_pop(ctx, b)
     gc_pop_(ctx, sep_ref)
-    free(b)
-    free(sep_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     return result
 }

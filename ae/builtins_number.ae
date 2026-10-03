@@ -44,8 +44,9 @@ js_number_parseInt(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     argv_set(argv, 0, s0)
     if jstag.is_exception(s0) != 0 { return jstag.JS_EXCEPTION }
 
-    slot = malloc(8)
-    if JS_ToInt32(ctx, slot, argv_get_(argv, 1)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToInt32(ctx, slot, argv_get_(argv, 1)) != 0 {  return jstag.JS_EXCEPTION }
     int radix = mem.get_int(slot, 0)
 
     float d = 0.0
@@ -56,13 +57,11 @@ js_number_parseInt(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     }
     if use_nan != 0 {
         d = mem.float_from_bits(consts.NAN_BITS)
-        free(slot)
         return JS_NewFloat64(ctx, d)
     }
     int err = js_atod1(ctx, slot, argv_get_(argv, 0), radix, consts.JS_ATOD_INT_ONLY)
-    if err != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if err != 0 {  return jstag.JS_EXCEPTION }
     d = mem.get_float64(slot, 0)
-    free(slot)
     return JS_NewFloat64(ctx, d)
 }
 
@@ -72,9 +71,9 @@ js_number_parseFloat(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     argv_set(argv, 0, s0)
     if jstag.is_exception(s0) != 0 { return jstag.JS_EXCEPTION }
 
-    slot = malloc(8)
-    if js_atod1(ctx, slot, argv_get_(argv, 0), 10, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if js_atod1(ctx, slot, argv_get_(argv, 0), 10, 0) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
-    free(slot)
     return JS_NewFloat64(ctx, d)
 }

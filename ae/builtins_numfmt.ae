@@ -41,20 +41,20 @@ argv_get_(argv: ptr, i: int) -> long {
 
 // JSValue js_number_toString(ctx, this_val, argc, argv)
 js_number_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     long tv = mem.get_long(this_val, 0)
-    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
 
     int radix = 10
     long a0 = argv_get_(argv, 0)
     if jstag.is_undefined(a0) == 0 {
-        if JS_ToInt32Sat(ctx, slot, a0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToInt32Sat(ctx, slot, a0) != 0 {  return jstag.JS_EXCEPTION }
         radix = mem.get_int(slot, 0)
-        if radix < 2 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "radix must be between 2 and 36") }
-        if radix > 36 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "radix must be between 2 and 36") }
+        if radix < 2 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "radix must be between 2 and 36") }
+        if radix > 36 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "radix must be between 2 and 36") }
     }
-    free(slot)
     int flags = consts.JS_DTOA_FORMAT_FREE
     if radix != 10 { flags = flags | consts.JS_DTOA_EXP_DISABLED }
     return js_dtoa2(ctx, d, radix, 0, flags)
@@ -62,13 +62,13 @@ js_number_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_number_toFixed(ctx, this_val, argc, argv)
 js_number_toFixed(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     long tv = mem.get_long(this_val, 0)
-    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
-    if JS_ToInt32Sat(ctx, slot, argv_get_(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32Sat(ctx, slot, argv_get_(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     int f = mem.get_int(slot, 0)
-    free(slot)
     if f < 0 { return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
     if f > 100 { return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
     int flags = consts.JS_DTOA_FORMAT_FRAC
@@ -79,14 +79,14 @@ js_number_toFixed(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_number_toExponential(ctx, this_val, argc, argv)
 js_number_toExponential(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     long tv = mem.get_long(this_val, 0)
-    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     long a0 = argv_get_(argv, 0)
-    if JS_ToInt32Sat(ctx, slot, a0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if JS_ToInt32Sat(ctx, slot, a0) != 0 {  return jstag.JS_EXCEPTION }
     int f = mem.get_int(slot, 0)
-    free(slot)
 
     int flags = 0
     if jstag.is_undefined(a0) != 0 {
@@ -106,9 +106,10 @@ js_number_toExponential(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // JSValue js_number_toPrecision(ctx, this_val, argc, argv)
 js_number_toPrecision(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     long tv = mem.get_long(this_val, 0)
-    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    if ptrhelp.js_thisNumberValue(ctx, slot, tv) != 0 {  return jstag.JS_EXCEPTION }
     float d = mem.get_float64(slot, 0)
     long a0 = argv_get_(argv, 0)
 
@@ -118,16 +119,15 @@ js_number_toPrecision(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         flags = consts.JS_DTOA_FORMAT_FREE
         p = 0
     } else {
-        if JS_ToInt32Sat(ctx, slot, a0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToInt32Sat(ctx, slot, a0) != 0 {  return jstag.JS_EXCEPTION }
         p = mem.get_int(slot, 0)
         if f_isfinite_(d) == 0 {
             flags = consts.JS_DTOA_FORMAT_FREE
         } else {
-            if p < 1 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
-            if p > 100 { free(slot)  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
+            if p < 1 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
+            if p > 100 {  return JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid number of digits") }
             flags = consts.JS_DTOA_FORMAT_FIXED
         }
     }
-    free(slot)
     return js_dtoa2(ctx, d, 10, p, flags)
 }

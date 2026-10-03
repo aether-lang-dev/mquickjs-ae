@@ -35,14 +35,14 @@ JS_Run(ctx: ptr, val: long) -> long {
     if jstag.is_exception(val) != 0 { return val }
 
     // GC-root val across the stack check
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, val)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     int err = JS_StackCheck(ctx, 2)
     val = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
     if err != 0 { return jstag.JS_EXCEPTION }
 
     JS_PushArg(ctx, val)

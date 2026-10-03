@@ -16,8 +16,10 @@ exports (js_string_eq)
 
 // BOOL js_string_eq(JSContext *ctx, JSValue val1, JSValue val2)
 js_string_eq(ctx: ptr, val1: long, val2: long) -> int {
-    s1 = malloc(16)
-    s2 = malloc(16)
+    long[2] s1_stk_
+    s1 = s1_stk_
+    long[2] s2_stk_
+    s2 = s2_stk_
     p1 = getpkg.get_string_ptr(ctx, s1, val1)
     p2 = getpkg.get_string_ptr(ctx, s2, val2)
     long len1 = (p1 as *JSString).len
@@ -29,7 +31,5 @@ js_string_eq(ctx: ptr, val1: long, val2: long) -> int {
         buf2 = mem.long_to_ptr(mem.ptr_to_long(p2) + 8)
         if memcmp(buf1, buf2, len1) == 0 { result = 1 }
     }
-    free(s1)
-    free(s2)
     return result
 }

@@ -69,7 +69,8 @@ js_regexp_exec(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lon
     if carr == null { return jstag.JS_EXCEPTION }
 
     // capture_buf GC ref
-    cbref = malloc(16)
+    long[2] cbref_stk_
+    cbref = cbref_stk_
     capture_buf = JS_PushGCRef(ctx, cbref)
     mem.set_long(capture_buf, 0, jstag.value_from_ptr(carr))
     long capval = jstag.value_from_ptr(carr)
@@ -86,11 +87,11 @@ js_regexp_exec(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lon
         rc = 2
     } else {
         p = jstag.value_to_ptr(mem.get_long(this_val, 0))
-        scratch = malloc(24)
+        long[3] scratch_stk_
+        scratch = scratch_stk_
         str = getpkg.get_string_ptr(ctx, scratch, a0)
         long strval = jstag.value_from_ptr(str)
         rc = lre_exec(ctx, mem.get_long(capture_buf, 0), mem.get_long(p, consts.RE_BYTE_CODE), strval, last_index_utf8)
-        free(scratch)
     }
 
     int failed = 0
@@ -124,7 +125,6 @@ js_regexp_exec(ctx: ptr, this_val: ptr, argc: int, argv: ptr, magic: int) -> lon
 
     if failed != 0 { obj = jstag.JS_EXCEPTION }
     JS_PopGCRef(ctx, cbref)
-    free(cbref)
     return obj
 }
 
@@ -135,18 +135,19 @@ build_match_array(ctx: ptr, this_val: ptr, argv: ptr, capture_buf: ptr, capture_
     if jstag.is_exception(obj) != 0 { return jstag.JS_EXCEPTION }
 
     // obj GC ref across the DefineProperty / sub_string allocations
-    oref = malloc(16)
+    long[2] oref_stk_
+    oref = oref_stk_
     JS_PushGCRef(ctx, oref)
     mem.set_long(oref, 0, obj)
 
     long capval = mem.get_long(capture_buf, 0)
     long res = JS_DefinePropertyValue(ctx, obj, js_get_atom(ctx, consts.JS_ATOM_index),
                                       re_short_int(strpos.js_string_utf8_to_utf16_pos(ctx, a0, cap_get(capval, 0) * 2)))
-    if jstag.is_exception(res) != 0 { obj = mem.get_long(oref, 0)  JS_PopGCRef(ctx, oref)  free(oref)  return jstag.JS_EXCEPTION }
+    if jstag.is_exception(res) != 0 { obj = mem.get_long(oref, 0)  JS_PopGCRef(ctx, oref)  return jstag.JS_EXCEPTION }
 
     obj = mem.get_long(oref, 0)
     res = JS_DefinePropertyValue(ctx, obj, js_get_atom(ctx, consts.JS_ATOM_input), a0)
-    if jstag.is_exception(res) != 0 { obj = mem.get_long(oref, 0)  JS_PopGCRef(ctx, oref)  free(oref)  return jstag.JS_EXCEPTION }
+    if jstag.is_exception(res) != 0 { obj = mem.get_long(oref, 0)  JS_PopGCRef(ctx, oref)  return jstag.JS_EXCEPTION }
 
     int i = 0
     while i < capture_count {
@@ -156,7 +157,7 @@ build_match_array(ctx: ptr, this_val: ptr, argv: ptr, capture_buf: ptr, capture_
         if start != 0 - 1 && end != 0 - 1 {
             obj = mem.get_long(oref, 0)
             long val = strpos.js_sub_string_utf8(ctx, a0, 2 * start, 2 * end)
-            if jstag.is_exception(val) != 0 { JS_PopGCRef(ctx, oref)  free(oref)  return jstag.JS_EXCEPTION }
+            if jstag.is_exception(val) != 0 { JS_PopGCRef(ctx, oref)  return jstag.JS_EXCEPTION }
             obj = mem.get_long(oref, 0)
             pobj = jstag.value_to_ptr(obj)
             long tab = mem.ptr_to_long(jstag.value_to_ptr((pobj as *JSObject).u.array.tab)) + consts.VA_ARR
@@ -166,6 +167,5 @@ build_match_array(ctx: ptr, this_val: ptr, argv: ptr, capture_buf: ptr, capture_
     }
     obj = mem.get_long(oref, 0)
     JS_PopGCRef(ctx, oref)
-    free(oref)
     return obj
 }

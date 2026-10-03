@@ -172,11 +172,11 @@ to_string(ctx: ptr, val: long) -> long {
         redo = 0
         if jstag.is_int(val) != 0 {
             int iv = jstag.get_int(val)                      // JS_VALUE_GET_INT
-            buf = malloc(32)
+            long[4] buf_stk_
+            buf = buf_stk_
             long len = i32toa(buf, iv)
             mem.set_byte(mem.long_to_ptr(mem.ptr_to_long(buf) + len), 0, 0)
             long r = JS_NewString(ctx, buf)
-            free(buf)
             return r
         }
         if ts_is_short_float(val) != 0 {
@@ -212,11 +212,11 @@ to_string(ctx: ptr, val: long) -> long {
                 if jstag.is_exception(val) != 0 { return val }
                 redo = 1
             } else {
-                scratch = malloc(2)
+                long[1] scratch_stk_
+                scratch = scratch_stk_
                 mem.set_byte(scratch, 0, 63)       // '?'
                 mem.set_byte(mem.long_to_ptr(mem.ptr_to_long(scratch) + 1), 0, 0)
                 long r = JS_NewString(ctx, scratch)
-                free(scratch)
                 return r
             }
         }
@@ -246,39 +246,39 @@ to_primitive(ctx: ptr, val: long, hint: int) -> long {
         if (i ^ hint) == 0 { atom = consts.JS_ATOM_toString }
 
         // GC-root val across JS_GetProperty
-        ref = malloc(16)
+        long[2] ref_stk_
+        ref = ref_stk_
         mem.set_long(ref, 0, val)
         mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
         mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
         long method = JS_GetProperty(ctx, val, js_get_atom(ctx, atom))
         val = mem.get_long(ref, 0)
         mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-        free(ref)
         if jstag.is_exception(method) != 0 { return method }
 
         if JS_IsFunction(ctx, method) != 0 {
             // GC-root method, val across stack check
-            r2 = malloc(32)
+            long[4] r2_stk_
+            r2 = r2_stk_
             mem.set_long(r2, 0, method)  mem.set_ptr(r2, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
             mem.set_long(r2, 16, val)    mem.set_ptr(r2, 24, mem.long_to_ptr(mem.ptr_to_long(r2)))
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.long_to_ptr(mem.ptr_to_long(r2) + 16))
             int err = JS_StackCheck(ctx, 2)
             method = mem.get_long(r2, 0)  val = mem.get_long(r2, 16)
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(r2, 8))
-            free(r2)
             if err != 0 { return jstag.JS_EXCEPTION }
 
             JS_PushArg(ctx, method)
             JS_PushArg(ctx, val)
             // GC-root val across JS_Call
-            r3 = malloc(16)
+            long[2] r3_stk_
+            r3 = r3_stk_
             mem.set_long(r3, 0, val)
             mem.set_ptr(r3, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, r3)
             long ret = JS_Call(ctx, 0)
             val = mem.get_long(r3, 0)
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(r3, 8))
-            free(r3)
             if jstag.is_exception(ret) != 0 { return ret }
             if JS_IsObject(ctx, ret) == 0 { return ret }
         }
@@ -358,10 +358,10 @@ to_int32_internal(ctx: ptr, pres: ptr, val: long, sat_flag: int) -> int {
     } else { } } }
 
     if got == 0 {
-        pd = malloc(8)
+        long[1] pd_stk_
+        pd = pd_stk_
         int err = to_number(ctx, pd, val)
         float d = mem.get_float64(pd, 0)
-        free(pd)
         if err != 0 { mem.set_int(pres, 0, 0)  return 0 - 1 }
         ret = tii_reduce(d, sat_flag)
     }
@@ -452,10 +452,10 @@ to_uint8_clamp(ctx: ptr, pres: ptr, val: long) -> int {
     } else { } } }
 
     if got == 0 {
-        pd = malloc(8)
+        long[1] pd_stk_
+        pd = pd_stk_
         int err = JS_ToNumber(ctx, pd, val)
         float d = mem.get_float64(pd, 0)
-        free(pd)
         if err != 0 { mem.set_int(pres, 0, 0)  return 0 - 1 }
         ret = tuc_clamp_double(d)
     }
@@ -485,15 +485,18 @@ tqs_utf8_get(base: long, plen: ptr) -> int {
 // int to_quoted_string(JSContext *ctx, StringBuffer *b, JSValue str)
 to_quoted_string(ctx: ptr, b: ptr, str: long) -> int {
     // GC-root str across the buffer appends
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, str)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
 
     strbuf.string_buffer_putc(ctx, b, 34)              // '"'
 
-    scratch = malloc(24)
-    plen = malloc(8)
+    long[3] scratch_stk_
+    scratch = scratch_stk_
+    long[1] plen_stk_
+    plen = plen_stk_
     int i = 0
     int looping = 1
     while looping != 0 {
@@ -527,10 +530,7 @@ to_quoted_string(ctx: ptr, b: ptr, str: long) -> int {
     }
     strbuf.string_buffer_putc(ctx, b, 34)              // '"'
 
-    free(plen)
-    free(scratch)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-    free(ref)
     return 0
 }
 
@@ -557,10 +557,10 @@ to_property_key(ctx: ptr, val: long) -> long {
     if jstag.is_int(val) != 0 { return val }
     val = to_string(ctx, val)
     if jstag.is_exception(val) != 0 { return val }
-    slot = malloc(4)
+    long[1] slot_stk_
+    slot = slot_stk_
     int isnum = numstr.is_num_string(ctx, slot, val)
     int n = mem.get_int(slot, 0)
-    free(slot)
     if isnum != 0 { return jstag.new_short_int(n) }
     return JS_MakeUniqueString(ctx, val)
 }

@@ -110,14 +110,14 @@ stdlib_init_class(ctx: ptr, class_def: ptr) -> long {
         long proto = class_proto_get(ctx, class_id)
         if jstag.is_null(proto) != 0 {
             // GC-root parent_class across JS_NewObjectProtoClass
-            ref = malloc(16)
+            long[2] ref_stk_
+            ref = ref_stk_
             mem.set_long(ref, 0, parent_class)
             mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
             proto = JS_NewObjectProtoClass(ctx, parent_proto, consts.JS_CLASS_OBJECT, 0)
             parent_class = mem.get_long(ref, 0)
             mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-            free(ref)
             class_proto_set(ctx, class_id, proto)
         }
         pp = jstag.value_to_ptr(proto)

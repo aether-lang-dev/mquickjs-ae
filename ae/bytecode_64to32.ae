@@ -233,7 +233,8 @@ JS_PrepareBytecode64to32(ctx: ptr, hdr: ptr, pdata_buf: ptr, pdata_len: ptr, eva
     (ctx as *JSContext).global_obj = jstag.JS_NULL
 
     // GC-root eval_code across the compaction
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, eval_code)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
@@ -245,7 +246,6 @@ JS_PrepareBytecode64to32(ctx: ptr, hdr: ptr, pdata_buf: ptr, pdata_len: ptr, eva
 
     eval_code = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
     if err != 0 { return 0 - 1 }
 
     mem.set_uint16(hdr, consts.H32_MAGIC, consts.JS_BYTECODE_MAGIC)

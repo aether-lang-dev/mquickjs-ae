@@ -22,11 +22,13 @@ exports (js_parse_string)
 // JSValue js_parse_string(JSParseState *s, uint32_t *ppos, int sep)
 js_parse_string(s: ptr, ppos: ptr, sep: int) -> long {
     ctx = (s as *JSParseState).ctx
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     if strbuf.string_buffer_push(ctx, b, 16) != 0 { js_parse_error_mem(s) }
     buf = (s as *JSParseState).source_buf
     long pos = mem.get_uint32(ppos, 0) & 0xffffffff
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
 
     int looping = 1
     while looping != 0 {
@@ -67,10 +69,8 @@ js_parse_string(s: ptr, ppos: ptr, sep: int) -> long {
             }
         }
     }
-    free(slot)
     mem.set_uint32(ppos, 0, pos)
     long res = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     if jstag.is_exception(res) != 0 { js_parse_error_mem(s) }
     return res
 }

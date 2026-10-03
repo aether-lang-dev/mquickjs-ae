@@ -48,7 +48,8 @@ bc_reloc_value(s: ptr, pval: ptr) {
             long p = val - 1                          // value_to_ptr
             if rb_mtag(p) == consts.JS_MTAG_STRING && rb_str_is_unique(p) != 0 {
                 int n = mem.get_byte(ctx, consts.JSCTX_N_ROM_ATOM_TABLES) & 0xff
-                pidx = malloc(4)
+                long[1] pidx_stk_
+                pidx = pidx_stk_
                 int i = 0
                 int found = 0
                 while i < n && found == 0 {
@@ -58,7 +59,6 @@ bc_reloc_value(s: ptr, pval: ptr) {
                     if jstag.is_null(str) == 0 { val = str  found = 1 }
                     i = i + 1
                 }
-                free(pidx)
             }
         }
         mem.set_long(pval, 0, val)
@@ -87,14 +87,14 @@ JS_PrepareBytecode(ctx: ptr, hdr: ptr, pdata_buf: ptr, pdata_len: ptr, eval_code
     (ctx as *JSContext).global_obj = jstag.JS_NULL
 
     // GC-root eval_code across JS_GC2
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, eval_code)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     JS_GC2(ctx, 0)
     eval_code = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     mem.set_uint16(hdr, consts.HDR_MAGIC, consts.JS_BYTECODE_MAGIC)
     mem.set_uint16(hdr, consts.HDR_VERSION, consts.JS_BYTECODE_VERSION)
@@ -114,7 +114,8 @@ JS_RelocateBytecode2(ctx: ptr, hdr: ptr, buf: ptr, buf_len: int, new_base_addr: 
     if mem.get_uint16(hdr, consts.HDR_MAGIC) != consts.JS_BYTECODE_MAGIC { return 0 - 1 }
     if mem.get_uint16(hdr, consts.HDR_VERSION) != consts.JS_BYTECODE_VERSION { return 0 - 1 }
 
-    s = malloc(24)
+    long[3] s_stk_
+    s = s_stk_
     mem.set_ptr(s, consts.BR_CTX, ctx)
     mem.set_long(s, consts.BR_OFFSET, new_base_addr - mem.get_long(hdr, consts.HDR_BASE_ADDR))
     mem.set_int(s, consts.BR_UPDATE, update_atoms)
@@ -149,7 +150,6 @@ JS_RelocateBytecode2(ctx: ptr, hdr: ptr, buf: ptr, buf_len: int, new_base_addr: 
         } } }
         cur = cur + size
     }
-    free(s)
     mem.set_long(hdr, consts.HDR_BASE_ADDR, new_base_addr)
     return 0
 }

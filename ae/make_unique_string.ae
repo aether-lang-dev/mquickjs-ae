@@ -52,7 +52,8 @@ JS_MakeUniqueString(ctx: ptr, val: long) -> long {
     if str_is_unique(p) != 0 { return val }
 
     // pidx scratch
-    pidx = malloc(8)
+    long[1] pidx_stk_
+    pidx = pidx_stk_
 
     // search the ROM atom tables
     int n_rom = mem.get_byte(ctx, consts.JSCTX_N_ROM_ATOM_TABLES)
@@ -61,7 +62,7 @@ JS_MakeUniqueString(ctx: ptr, val: long) -> long {
         arr1 = mem.get_ptr(ctx, consts.JSCTX_ROM_ATOM_TABLES + i * 8)
         if arr1 != null {
             long v1 = find_atom(ctx, pidx, arr1, mus_va_size(arr1), val)
-            if jstag.is_null(v1) == 0 { free(pidx)  return v1 }
+            if jstag.is_null(v1) == 0 {  return v1 }
         }
         i = i + 1
     }
@@ -70,15 +71,15 @@ JS_MakeUniqueString(ctx: ptr, val: long) -> long {
     arr = jstag.value_to_ptr((ctx as *JSContext).unique_strings)
     int us_len = mem.get_int(ctx, consts.JSCTX_UNIQUE_STRINGS_LEN)
     long v2 = find_atom(ctx, pidx, arr, us_len, val)
-    if jstag.is_null(v2) == 0 { free(pidx)  return v2 }
+    if jstag.is_null(v2) == 0 {  return v2 }
     int a = mem.get_int(pidx, 0)
-    free(pidx)
 
     int is_numeric = numstr.js_is_numeric_string(ctx, val)
     if is_numeric < 0 { return jstag.JS_EXCEPTION }
 
     // not found: insert at sorted index a. GC-root val across the resize.
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, val)
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
@@ -87,7 +88,6 @@ JS_MakeUniqueString(ctx: ptr, val: long) -> long {
 
     val = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     if jstag.is_exception(new_tab) != 0 { return jstag.JS_EXCEPTION }
     (ctx as *JSContext).unique_strings = new_tab

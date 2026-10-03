@@ -19,9 +19,9 @@ js_array_buffer_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> lo
     if (argc & consts.FRAME_CF_CTOR) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "must be called with new")
     }
-    slot = malloc(8)
-    if JS_ToIndex(ctx, slot, mem.get_long(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToIndex(ctx, slot, mem.get_long(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     long len = mem.get_long(slot, 0)
-    free(slot)
     return js_array_buffer_alloc(ctx, len)
 }

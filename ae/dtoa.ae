@@ -16,7 +16,8 @@ exports (u32toa, i32toa)
 // the length. Builds digits back-to-front in a 10-byte scratch then copies.
 // n is treated as unsigned 32-bit (mask into a long so / and % are unsigned).
 u32toa(buf: ptr, n: int) -> long {
-    scratch = malloc(10)
+    long[2] scratch_stk_
+    scratch = scratch_stk_
     long un = n & 0xffffffff
     int q = 10
     int done = 0
@@ -29,7 +30,6 @@ u32toa(buf: ptr, n: int) -> long {
     }
     long len = 10 - q
     memcpy(buf, mem.long_to_ptr(mem.ptr_to_long(scratch) + q), len)
-    free(scratch)
     return len
 }
 

@@ -43,9 +43,9 @@ gc_pop_(ctx: ptr, ref: ptr) -> long {
 
 // JSValue js_function_get_length_name(ctx, this_val, argc, argv, is_name)
 js_function_get_length_name(ctx: ptr, this_val: ptr, argc: int, argv: ptr, is_name: int) -> long {
-    bslot = malloc(8)
+    long[1] bslot_stk_
+    bslot = bslot_stk_
     long ret = funcname.js_function_get_length_name1(ctx, this_val, is_name, bslot)
-    free(bslot)
     if jstag.is_null(ret) != 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a function")
     }
@@ -54,12 +54,13 @@ js_function_get_length_name(ctx: ptr, this_val: ptr, argc: int, argv: ptr, is_na
 
 // JSValue js_function_toString(ctx, this_val, argc, argv)
 js_function_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
-    bslot = malloc(8)
+    long[1] bslot_stk_
+    bslot = bslot_stk_
     long str = funcname.js_function_get_length_name1(ctx, this_val, 1, bslot)
-    free(bslot)
     if jstag.is_exception(str) != 0 { return str }
 
-    str_ref = malloc(16)
+    long[2] str_ref_stk_
+    str_ref = str_ref_stk_
     gc_push_(ctx, str_ref, str)
     long val = JS_NewString(ctx, "function ")
     str = gc_pop_(ctx, str_ref)
@@ -67,14 +68,14 @@ js_function_toString(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     gc_push_(ctx, str_ref, str)
     val = JS_NewString(ctx, "() {\n    [native code]\n}")
     str = gc_pop_(ctx, str_ref)
-    free(str_ref)
     return JS_ConcatString(ctx, str, val)
 }
 
 // JSValue js_function_constructor(ctx, this_val, argc, argv)
 js_function_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     int a = argc & (0 - 1 - consts.FRAME_CF_CTOR)
-    b = malloc(24)
+    long[3] b_stk_
+    b = b_stk_
     strbuf.string_buffer_push(ctx, b, 0)
     strbuf.string_buffer_puts(ctx, b, "(function anonymous(")
     int n = a - 1
@@ -95,7 +96,6 @@ js_function_constructor(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
         strbuf.string_buffer_puts(ctx, b, "\n})")
     }
     long val = strbuf.string_buffer_pop(ctx, b)
-    free(b)
     if jstag.is_exception(val) != 0 { return val }
     val = JS_Parse2(ctx, val, null, 0, "<input>", consts.JS_EVAL_RETVAL)
     if jstag.is_exception(val) != 0 { return val }
@@ -128,12 +128,12 @@ js_function_get_prototype(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a function")
     }
 
-    obj_ref = malloc(16)
+    long[2] obj_ref_stk_
+    obj_ref = obj_ref_stk_
     gc_push_(ctx, obj_ref, obj)
     JS_DefinePropertyValue(ctx, mem.get_long(obj_ref, consts.GCREF_VAL), js_get_atom(ctx, consts.JS_ATOM_constructor), mem.get_long(this_val, 0))
     JS_DefinePropertyValue(ctx, mem.get_long(this_val, 0), js_get_atom(ctx, consts.JS_ATOM_prototype), mem.get_long(obj_ref, consts.GCREF_VAL))
     long result = gc_pop_(ctx, obj_ref)
-    free(obj_ref)
     return result
 }
 
@@ -163,11 +163,11 @@ js_function_bound(ctx: ptr, this_val: ptr, argc: int, argv: ptr, params: long) -
     // JSValueArray.size: header bits 4..63 (uint64 @0 >> 4)
     long hdr = mem.get_long(arr, 0)
     int size = (hdr >> 4) & 0xfffffff
-    params_ref = malloc(16)
+    long[2] params_ref_stk_
+    params_ref = params_ref_stk_
     gc_push_(ctx, params_ref, params)
     int err = JS_StackCheck(ctx, size + argc)
     long params2 = gc_pop_(ctx, params_ref)
-    free(params_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     int argc2 = size - 2 + argc
     if argc2 > consts.JS_MAX_ARGC { return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "too many call arguments") }

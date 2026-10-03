@@ -40,16 +40,16 @@ js_string_slice(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if jstag.is_exception(s) != 0 { return jstag.JS_EXCEPTION }
     int len = js_string_len(ctx, s)
 
-    slot = malloc(8)
-    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, len) != 0 {  return jstag.JS_EXCEPTION }
     int start = mem.get_int(slot, 0)
     int end = len
     long a1 = argv_get_(argv, 1)
     if jstag.is_undefined(a1) == 0 {
-        if JS_ToInt32Clamp(ctx, slot, a1, 0, len, len) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToInt32Clamp(ctx, slot, a1, 0, len, len) != 0 {  return jstag.JS_EXCEPTION }
         end = mem.get_int(slot, 0)
     }
-    free(slot)
     int e = end
     if start > e { e = start }   // max_int(end, start)
     return js_sub_string(ctx, s, start, e)
@@ -62,16 +62,16 @@ js_string_substring(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if jstag.is_exception(s) != 0 { return jstag.JS_EXCEPTION }
     int len = js_string_len(ctx, s)
 
-    slot = malloc(8)
-    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToInt32Clamp(ctx, slot, argv_get_(argv, 0), 0, len, 0) != 0 {  return jstag.JS_EXCEPTION }
     int a = mem.get_int(slot, 0)
     int b = len
     long a1 = argv_get_(argv, 1)
     if jstag.is_undefined(a1) == 0 {
-        if JS_ToInt32Clamp(ctx, slot, a1, 0, len, 0) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+        if JS_ToInt32Clamp(ctx, slot, a1, 0, len, 0) != 0 {  return jstag.JS_EXCEPTION }
         b = mem.get_int(slot, 0)
     }
-    free(slot)
     int start = a
     int end = b
     if a >= b {

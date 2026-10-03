@@ -71,12 +71,12 @@ pv_write_raw(ctx: ptr, p: long, clen: long) {
 
 // void js_dump_float64(JSContext *ctx, double d)
 js_dump_float64(ctx: ptr, d: float) {
-    buf = malloc(32)
+    long[4] buf_stk_
+    buf = buf_stk_
     tmp = malloc(consts.SIZEOF_JSDTOATEMPMEM)
     js_dtoa(buf, d, 10, 0, consts.JS_DTOA_FORMAT_FREE | consts.JS_DTOA_MINUS_ZERO, tmp)
     js_printf(ctx, "%s", buf)
     free(tmp)
-    free(buf)
 }
 
 // void js_dump_array(JSContext *ctx, JSValueArray *arr, int len)
@@ -115,7 +115,8 @@ dump_string(ctx: ptr, sep: int, buf: ptr, len: long, flags: int) {
 
     long p = b
     long pend = b + len
-    plen = malloc(8)
+    long[1] plen_stk_
+    plen = plen_stk_
     while p < pend {
         int c = utf8_get(mem.long_to_ptr(p), plen)
         long clen = mem.get_long(plen, 0)
@@ -140,7 +141,6 @@ dump_string(ctx: ptr, sep: int, buf: ptr, len: long, flags: int) {
         }
         p = p + clen
     }
-    free(plen)
     if use_quote != 0 { js_putchar(ctx, realsep) }
 }
 
@@ -157,10 +157,10 @@ dump_regexp(ctx: ptr, p: ptr) {
     }
     free(cbuf)
     arr = jstag.value_to_ptr(mem.get_long(p, consts.U_REGEXP_BYTECODE))
-    buf2 = malloc(8)
+    long[1] buf2_stk_
+    buf2 = buf2_stk_
     js_regexp_flags_str(buf2, lre_get_flags(mem.long_to_ptr(mem.ptr_to_long(arr) + consts.BA_BUF)))
     js_printf(ctx, "/%s", buf2)
-    free(buf2)
 }
 
 // static void js_dump_error(JSContext *ctx, JSObject *p)
@@ -329,10 +329,10 @@ JS_PrintValueF(ctx: ptr, val: long, flags: int) {
             JS_PrintValueF(ctx, reloc_c_func_name(ctx, mem.get_long(mem.long_to_ptr(fd + consts.CFD_NAME), 0)), consts.JS_DUMP_NOQUOTE)
             js_printf(ctx, "()")
         } else { if tag == jstag.TAG_STRING_CHAR {
-            sbuf = malloc(8)
+            long[1] sbuf_stk_
+            sbuf = sbuf_stk_
             int slen = get_short_string(sbuf, val)
             dump_string(ctx, 96, sbuf, slen, flags)   // '`'
-            free(sbuf)
         } else {
             js_printf(ctx, "[tag %d]", jstag.get_special_tag(val))
         } } } } }

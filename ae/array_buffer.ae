@@ -41,7 +41,8 @@ js_array_buffer_alloc(ctx: ptr, len: long) -> long {
     long buffer = jstag.value_from_ptr(arr)
 
     // GC-root buffer across JS_NewObjectClass
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, 0, buffer)
@@ -50,7 +51,6 @@ js_array_buffer_alloc(ctx: ptr, len: long) -> long {
 
     buffer = mem.get_long(ref, 0)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     if jstag.is_exception(obj) != 0 { return obj }
     p = jstag.value_to_ptr(obj)

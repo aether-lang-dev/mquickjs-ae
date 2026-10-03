@@ -50,10 +50,10 @@ js_call_constructor_start(ctx: ptr, fobj: long) -> long {
 
 // int JS_ToIndex(JSContext *ctx, uint64_t *plen, JSValue val)
 JS_ToIndex(ctx: ptr, plen: ptr, val: long) -> int {
-    s = malloc(4)
-    if JS_ToInt32Sat(ctx, s, val) != 0 { free(s)  return 0 - 1 }
+    long[1] s_stk_
+    s = s_stk_
+    if JS_ToInt32Sat(ctx, s, val) != 0 {  return 0 - 1 }
     int v = mem.get_int(s, 0)
-    free(s)
     if v < 0 {
         JS_ThrowError(ctx, consts.JS_CLASS_RANGE_ERROR, "invalid array index")
         return 0 - 1

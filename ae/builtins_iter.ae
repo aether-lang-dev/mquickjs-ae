@@ -96,8 +96,10 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
     }
 
     int n = 0
-    ret_ref = malloc(16)
-    val_ref = malloc(16)
+    long[2] ret_ref_stk_
+    ret_ref = ret_ref_stk_
+    long[2] val_ref_stk_
+    val_ref = val_ref_stk_
     gc_push_(ctx, ret_ref, ret)
 
     int k = 0
@@ -158,8 +160,6 @@ js_array_every(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> l
     }
 
     long final_ret = gc_pop_(ctx, ret_ref)
-    free(val_ref)
-    free(ret_ref)
     return final_ret
 }
 
@@ -191,7 +191,8 @@ js_array_reduce(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> 
         k = 1
     }
 
-    acc_ref = malloc(16)
+    long[2] acc_ref_stk_
+    acc_ref = acc_ref_stk_
     int err = 0
     while k < len {
         gc_push_(ctx, acc_ref, acc)
@@ -220,7 +221,6 @@ js_array_reduce(ctx: ptr, this_val: ptr, argc: int, argv: ptr, special: int) -> 
             }
         }
     }
-    free(acc_ref)
     if err != 0 { return jstag.JS_EXCEPTION }
     return acc
 }
@@ -271,14 +271,17 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     // GC-root the temp array; build the sort context. parr -> the
     // ref's val (so callbacks see the current tab pointer); pfunc slot
     // holds the comparator (or a slot containing JS_UNDEFINED -> null).
-    tab_ref = malloc(16)
+    long[2] tab_ref_stk_
+    tab_ref = tab_ref_stk_
     gc_push_(ctx, tab_ref, tab_val)
 
-    sctx = malloc(32)
+    long[4] sctx_stk_
+    sctx = sctx_stk_
     mem.set_ptr(sctx, 0, ctx)               // ctx
     mem.set_int(sctx, 8, 0)                 // exception = FALSE
     mem.set_ptr(sctx, 16, mem.long_to_ptr(mem.ptr_to_long(tab_ref) + consts.GCREF_VAL))  // parr
-    pfunc_slot = malloc(8)
+    long[1] pfunc_slot_stk_
+    pfunc_slot = pfunc_slot_stk_
     if has_func != 0 {
         mem.set_long(pfunc_slot, 0, pfunc)
         mem.set_ptr(sctx, 24, pfunc_slot)   // pfunc -> &pfunc
@@ -293,9 +296,6 @@ js_array_sort(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     long tv2 = gc_pop_(ctx, tab_ref)
     tab = jstag.value_to_ptr(tv2)
     int exc = mem.get_int(sctx, 8)
-    free(pfunc_slot)
-    free(sctx)
-    free(tab_ref)
     if exc != 0 {
         js_free(ctx, tab)
         return jstag.JS_EXCEPTION

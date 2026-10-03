@@ -27,8 +27,10 @@ min_int_(a: int, b: int) -> int { if a < b { return a } return b }
 
 // int js_string_compare(JSContext *ctx, JSValue val1, JSValue val2)
 js_string_compare(ctx: ptr, val1: long, val2: long) -> int {
-    buf1 = malloc(24)
-    buf2 = malloc(24)
+    long[3] buf1_stk_
+    buf1 = buf1_stk_
+    long[3] buf2_stk_
+    buf2 = buf2_stk_
     p1 = getpkg.get_string_ptr(ctx, buf1, val1)
     p2 = getpkg.get_string_ptr(ctx, buf2, val2)
     int len1 = str_len_(p1)
@@ -79,7 +81,5 @@ js_string_compare(ctx: ptr, val1: long, val2: long) -> int {
         else { if len1 < len2 { res = 0 - 1 } else { res = 1 } }
     }
 
-    free(buf1)
-    free(buf2)
     return res
 }

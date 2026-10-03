@@ -194,19 +194,26 @@ alter them. That is how the N3 generator port was verified.
   `run-valgrind.sh` and `scripts/diff-upstream.sh` (23/23 identical to
   `7ea5399`) all pass. Octane runs with correct results throughout. The ASAN
   fuzzer has run 9,000 cases with no crashes.
-- **Performance (2026-10-03, macOS arm64).** Opcode dispatch is a `switch`
-  now, and the slow-path `block` handlers sit behind one `block != 0` test,
-  but that bought only ~2%: clang had already been making a jump table of the
-  `if opcode ==` chain. A profile showed the real costs were in Aether, not
-  the VM: `mem.long_to_ptr` / `ptr_to_long` / `get_ptr` were out-of-line
-  libaether calls (~30% of samples), and every `--emit=lib` loop head called
-  the deadline tripwire, two TLS reads each (~22%). Both are fixed in an
-  Aether change (extending the #1733 inline accessor lowering; a plain
-  `aether_caps_armed` global in front of the tripwire). With it, Octane is
-  2.3× faster (0.15 → 0.36 of upstream C's score) and the microbench went
-  from 7.25× to 3.39× slower than C. Until that Aether lands, a build at
-  `ci-pins` keeps the old numbers. Profile with `sample <pid> 2` on a running
-  `mqjs`; the top-of-stack list says where time goes.
+- **Performance (2026-10-03, macOS arm64, Aether 0.763, both engines `-Os`).**
+  Octane: the port scores 0.44 of upstream C (it was 0.15); microbench 2.7×
+  slower (was 7.25×). What got it here, biggest first:
+  - Aether 0.763 (#2375): `mem.long_to_ptr` / `ptr_to_long` / `get_ptr` and
+    friends are inlined, and `--emit=lib` loop heads skip the deadline call.
+  - Scratch out-parameters and GC roots are stack arrays (`long[N] x_stk_`),
+    not `malloc`/`free` pairs. C passes `&local`; the port had 256 sites that
+    allocated instead, and on macOS each malloc/free also reads the clock.
+    That was 26–43% of samples on numeric code. Don't add new
+    `x = malloc(8) ... free(x)` scratch: use a stack array.
+  - Opcode dispatch is a `switch` (worth ~2%: clang had already made a jump
+    table of the old `if` chain).
+  - `-O2` instead of `-Os` changes nothing for the port (upstream gains 7–8%).
+  What is left is structural. Upstream dispatches with computed goto; the
+  port emulates it with a loop, a `block` state variable and a switch. An
+  instruction-level trace of an integer loop puts ~28% in the dispatch
+  sequence, ~25% at the loop head, and ~19% deciding `block` (clang folds
+  `if block != 0` into a compare tree that includes 0). Profile with
+  `xctrace record --template 'Time Profiler'` (instruction PCs) or
+  `sample <pid> 2` (functions).
 - **Bugs found by the new harnesses and fixed (October 2026):**
   - VM: missing b/pc reloads after GC-capable calls.
   - Tokenizer: buffer overread.

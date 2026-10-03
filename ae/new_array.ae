@@ -25,7 +25,8 @@ JS_NewArray(ctx: ptr, initial_len: int) -> long {
     (p as *JSObject).u.array.len = 0
     if initial_len > 0 {
         // GC-root val across vstore.js_alloc_value_array (which may GC).
-        ref = malloc(16)
+        long[2] ref_stk_
+        ref = ref_stk_
         mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
         (ctx as *JSContext).top_gc_ref = ref
         mem.set_long(ref, 0, val)
@@ -34,7 +35,6 @@ JS_NewArray(ctx: ptr, initial_len: int) -> long {
 
         val = mem.get_long(ref, 0)
         (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-        free(ref)
 
         if arr == null { return jstag.JS_EXCEPTION }
         p = jstag.value_to_ptr(val)

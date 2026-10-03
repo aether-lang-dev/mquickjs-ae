@@ -101,10 +101,10 @@ js_parse_json_value(s: ptr, st: int, dummy_param: int) -> int {
         tmp_arr = js_alloc_byte_array(ctx, consts.SIZEOF_JSATODTEMPMEM)
         if tmp_arr == null { js_parse_error_mem(s) }
         p = source_buf(s) + buf_pos_(s)
-        pnext = malloc(8)
+        long[1] pnext_stk_
+        pnext = pnext_stk_
         float d = js_atod(mem.long_to_ptr(p), pnext, 10, 0, mem.long_to_ptr(mem.ptr_to_long(tmp_arr) + 8))
         p = mem.ptr_to_long(mem.get_ptr(pnext, 0))
-        free(pnext)
         js_free(ctx, tmp_arr)
         if f_isnan_(d) != 0 { js_parse_error(s, "invalid number literal") }
         long val = JS_NewFloat64(ctx, d)
@@ -123,11 +123,11 @@ js_parse_json_value(s: ptr, st: int, dummy_param: int) -> int {
         return finish(s, p, jstag.JS_NULL)
     }
     if c == 34 {    // '"' string
-        slot = malloc(8)
+        long[1] slot_stk_
+        slot = slot_stk_
         mem.set_uint32(slot, 0, p + 1 - source_buf(s))
         long val = js_parse_string(s, slot, 34)
         p = source_buf(s) + (mem.get_uint32(slot, 0) & 0xffffffff)
-        free(slot)
         return finish(s, p, val)
     }
     if c == 91 {    // '[' array
@@ -197,13 +197,13 @@ object_loop_(s: ptr) -> int {
     p = skip(s, p)
     set_buf_pos_(s, p - source_buf(s))
     if byte_at(s, p) != 34 { js_parse_error(s, "expecting '\"'") }   // '"'
-    slot = malloc(8)
+    long[1] slot_stk_
+    slot = slot_stk_
     mem.set_uint32(slot, 0, p + 1 - source_buf(s))
     long prop = js_parse_string(s, slot, 34)
     long prop2 = JS_ToPropertyKey(ps_ctx_(s), prop)
     if is_exc(prop2) != 0 { js_parse_error_mem(s) }
     p = source_buf(s) + (mem.get_uint32(slot, 0) & 0xffffffff)
-    free(slot)
     p = skip(s, p)
     if byte_at(s, p) != 58 { js_parse_error(s, "expecting ':'") }   // ':'
     p = p + 1

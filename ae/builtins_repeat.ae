@@ -26,10 +26,10 @@ js_string_repeat(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
     if JS_IsString(ctx, tv) == 0 {
         return JS_ThrowError(ctx, consts.JS_CLASS_TYPE_ERROR, "not a string")
     }
-    slot = malloc(8)
-    if JS_ToInt32Sat(ctx, slot, mem.get_long(argv, 0)) != 0 { free(slot)  return jstag.JS_EXCEPTION }
+    long[1] slot_stk_
+    slot = slot_stk_
+    if JS_ToInt32Sat(ctx, slot, mem.get_long(argv, 0)) != 0 {  return jstag.JS_EXCEPTION }
     int n = mem.get_int(slot, 0)
-    free(slot)
 
     scratch = malloc(16)   // JSStringCharBuf
     p = getpkg.get_string_ptr(ctx, scratch, tv)

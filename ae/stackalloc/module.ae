@@ -76,14 +76,14 @@ push_break_entry(s: ptr, label_name: long, label_break: long, label_cont: long, 
     ctx = mem.get_ptr(s, consts.JSPS_CTX)
 
     // GC-root label_name across the stack check
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, label_name)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
     int err = JS_StackCheck(ctx, BLOCK_ENV_LEN)
     label_name = mem.get_long(ref, 0)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-    free(ref)
     if err != 0 { js_parse_error_stack_overflow(s) }
 
     long sp = mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_SP)) - consts.SIZEOF_BLOCKENV
@@ -105,14 +105,14 @@ parse_stack_alloc(s: ptr, val: long) -> long {
     ctx = mem.get_ptr(s, consts.JSPS_CTX)
 
     // GC-root val across the stack check
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_long(ref, 0, val)
     mem.set_ptr(ref, 8, mem.get_ptr(ctx, consts.JSCTX_TOP_GC_REF))
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, ref)
     int err = JS_StackCheck(ctx, 1)
     val = mem.get_long(ref, 0)
     mem.set_ptr(ctx, consts.JSCTX_TOP_GC_REF, mem.get_ptr(ref, 8))
-    free(ref)
 
     if err != 0 { js_parse_error_stack_overflow(s) }
     return val

@@ -23,7 +23,8 @@ JS_NewObjectPrealloc(ctx: ptr, n: int) -> long {
     if n <= 0 { return obj }
 
     // GC-root obj across alloc.js_alloc_props (which may GC).
-    ref = malloc(16)
+    long[2] ref_stk_
+    ref = ref_stk_
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)   // ref->prev
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, 0, obj)                                  // ref->val
@@ -32,7 +33,6 @@ JS_NewObjectPrealloc(ctx: ptr, n: int) -> long {
 
     obj = mem.get_long(ref, 0)                                 // reload (may have moved)
     (ctx as *JSContext).top_gc_ref = mem.get_ptr(ref, 8)
-    free(ref)
 
     if arr == null { return jstag.JS_EXCEPTION }
     p = jstag.value_to_ptr(obj)

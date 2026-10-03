@@ -37,26 +37,26 @@ key_from_str(ctx: ptr, str: ptr) -> long {
 
 // JSValue JS_GetPropertyStr(JSContext *ctx, JSValue this_obj, const char *str)
 JS_GetPropertyStr(ctx: ptr, this_obj: long, str: ptr) -> long {
-    r1 = malloc(16)
+    long[2] r1_stk_
+    r1 = r1_stk_
     gc_push_(ctx, r1, this_obj)
     long prop = key_from_str(ctx, str)
     this_obj = gc_pop_(ctx, r1)
-    free(r1)
     if jstag.is_exception(prop) != 0 { return prop }
     return JS_GetProperty(ctx, this_obj, prop)
 }
 
 // JSValue JS_SetPropertyStr(JSContext *ctx, JSValue this_obj, const char *str, JSValue val)
 JS_SetPropertyStr(ctx: ptr, this_obj: long, str: ptr, val: long) -> long {
-    r1 = malloc(16)
-    r2 = malloc(16)
+    long[2] r1_stk_
+    r1 = r1_stk_
+    long[2] r2_stk_
+    r2 = r2_stk_
     gc_push_(ctx, r1, this_obj)
     gc_push_(ctx, r2, val)
     long prop = key_from_str(ctx, str)
     val = gc_pop_(ctx, r2)
     this_obj = gc_pop_(ctx, r1)
-    free(r2)
-    free(r1)
     if jstag.is_exception(prop) != 0 { return prop }
     return setprop.JS_SetPropertyInternal(ctx, this_obj, prop, val, 0)
 }
