@@ -1,4 +1,4 @@
 # Toolchain the port is validated against. CI builds exactly these; bump them
 # deliberately (after running the gate locally against the new versions).
-AETHER_REF=v0.760.0
+AETHER_REF=v0.766.0
 AEB_REF=b0cc057

@@ -128,90 +128,90 @@ const OP_put_arg3 = 125
 const OP_post_inc = 66
 
 // ---- stateless accessors (safe as helpers) ----
-ctx_sp_(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr(ctx, 32)) }
-ctx_set_sp_(ctx: ptr, p: long) { mem.set_ptr(ctx, 32, mem.long_to_ptr(p)) }
-ctx_fp(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr(ctx, 40)) }
-ctx_set_fp(ctx: ptr, p: long) { mem.set_ptr(ctx, 40, mem.long_to_ptr(p)) }
-ctx_rec(ctx: ptr) -> int { return mem.get_int(ctx, 76) }
-ctx_set_rec(ctx: ptr, v: int) { mem.set_int(ctx, 76, v) }
-ctx_cft(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr(ctx, 120)) }
+ctx_sp_(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr_unchecked(ctx, 32)) }
+ctx_set_sp_(ctx: ptr, p: long) { mem.set_ptr_unchecked(ctx, 32, mem.long_to_ptr(p)) }
+ctx_fp(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr_unchecked(ctx, 40)) }
+ctx_set_fp(ctx: ptr, p: long) { mem.set_ptr_unchecked(ctx, 40, mem.long_to_ptr(p)) }
+ctx_rec(ctx: ptr) -> int { return mem.get_int_unchecked(ctx, 76) }
+ctx_set_rec(ctx: ptr, v: int) { mem.set_int_unchecked(ctx, 76, v) }
+ctx_cft(ctx: ptr) -> long { return mem.ptr_to_long(mem.get_ptr_unchecked(ctx, 120)) }
 ctx_intr_dec(ctx: ptr) -> int {
-    int v = mem.get_int16(ctx, 58) - 1
-    mem.set_int16(ctx, 58, v)
+    int v = mem.get_int16_unchecked(ctx, 58) - 1
+    mem.set_int16_unchecked(ctx, 58, v)
     return v
 }
-ctx_cur_exc(ctx: ptr) -> long { return mem.get_long(ctx, 216) }
-ctx_set_cur_exc(ctx: ptr, v: long) { mem.set_long(ctx, 216, v) }
-ctx_uncatchable(ctx: ptr) -> int { return mem.get_byte(ctx, 60) }
-ctx_empty_props(ctx: ptr) -> long { return mem.get_long(ctx, 224) }
-ctx_minus_zero(ctx: ptr) -> long { return mem.get_long(ctx, 240) }
-ctx_class_proto(ctx: ptr, class_id: int) -> long { return mem.get_long(ctx, 248 + class_id * 8) }
+ctx_cur_exc(ctx: ptr) -> long { return mem.get_long_unchecked(ctx, 216) }
+ctx_set_cur_exc(ctx: ptr, v: long) { mem.set_long_unchecked(ctx, 216, v) }
+ctx_uncatchable(ctx: ptr) -> int { return mem.get_byte_unchecked(ctx, 60) }
+ctx_empty_props(ctx: ptr) -> long { return mem.get_long_unchecked(ctx, 224) }
+ctx_minus_zero(ctx: ptr) -> long { return mem.get_long_unchecked(ctx, 240) }
+ctx_class_proto(ctx: ptr, class_id: int) -> long { return mem.get_long_unchecked(ctx, 248 + class_id * 8) }
 
-slot(base: long, i: int) -> long { return mem.get_long(mem.long_to_ptr(base + i * 8), 0) }
-set_slot(base: long, i: int, v: long) { mem.set_long(mem.long_to_ptr(base + i * 8), 0, v) }
+slot(base: long, i: int) -> long { return mem.get_long_unchecked(mem.long_to_ptr(base + i * 8), 0) }
+set_slot(base: long, i: int, v: long) { mem.set_long_unchecked(mem.long_to_ptr(base + i * 8), 0, v) }
 
-obj_mtag_(p: long) -> int { return (mem.get_byte(mem.long_to_ptr(p), 0) >> 1) & 7 }
-obj_class_id_(p: long) -> int { return (mem.get_int(mem.long_to_ptr(p), 0) >> 4) & 0xff }
-obj_proto(p: long) -> long { return mem.get_long(mem.long_to_ptr(p), 8) }
-obj_props(p: long) -> long { return mem.get_long(mem.long_to_ptr(p), 16) }
-obj_array_tab_(p: long) -> long { return mem.get_long(mem.long_to_ptr(p), 24) }
-obj_array_len_(p: long) -> int { return mem.get_uint32(mem.long_to_ptr(p), 32) }
-obj_array_set_len(p: long, v: int) { mem.set_uint32(mem.long_to_ptr(p), 32, v) }
-obj_closure_fb(p: long) -> long { return v_to_ptr(mem.get_long(mem.long_to_ptr(p), 24)) }
-obj_closure_varref(p: long, idx: int) -> long { return mem.get_long(mem.long_to_ptr(p), 32 + idx * 8) }
-obj_cfunc_idx(p: long) -> int { return mem.get_uint32(mem.long_to_ptr(p), 24) }
-obj_cfunc_params(p: long) -> long { return mem.get_long(mem.long_to_ptr(p), 32) }
+obj_mtag_(p: long) -> int { return (mem.get_byte_unchecked(mem.long_to_ptr(p), 0) >> 1) & 7 }
+obj_class_id_(p: long) -> int { return (mem.get_int_unchecked(mem.long_to_ptr(p), 0) >> 4) & 0xff }
+obj_proto(p: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(p), 8) }
+obj_props(p: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(p), 16) }
+obj_array_tab_(p: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(p), 24) }
+obj_array_len_(p: long) -> int { return mem.get_uint32_unchecked(mem.long_to_ptr(p), 32) }
+obj_array_set_len(p: long, v: int) { mem.set_uint32_unchecked(mem.long_to_ptr(p), 32, v) }
+obj_closure_fb(p: long) -> long { return v_to_ptr(mem.get_long_unchecked(mem.long_to_ptr(p), 24)) }
+obj_closure_varref(p: long, idx: int) -> long { return mem.get_long_unchecked(mem.long_to_ptr(p), 32 + idx * 8) }
+obj_cfunc_idx(p: long) -> int { return mem.get_uint32_unchecked(mem.long_to_ptr(p), 24) }
+obj_cfunc_params(p: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(p), 32) }
 obj_regexp_set(p: long, src: long, bc: long) {
-    mem.set_long(mem.long_to_ptr(p), 24, src)
-    mem.set_long(mem.long_to_ptr(p), 32, bc)
-    mem.set_int(mem.long_to_ptr(p), 40, 0)
+    mem.set_long_unchecked(mem.long_to_ptr(p), 24, src)
+    mem.set_long_unchecked(mem.long_to_ptr(p), 32, bc)
+    mem.set_int_unchecked(mem.long_to_ptr(p), 40, 0)
 }
 
-str_is_ascii_(p: long) -> int { return (mem.get_byte(mem.long_to_ptr(p), 0) >> 5) & 1 }
-str_len_(p: long) -> int { return mem.get_long(mem.long_to_ptr(p), 0) >> 7 }
+str_is_ascii_(p: long) -> int { return (mem.get_byte_unchecked(mem.long_to_ptr(p), 0) >> 5) & 1 }
+str_len_(p: long) -> int { return mem.get_long_unchecked(mem.long_to_ptr(p), 0) >> 7 }
 
 fb_arg_count_(b: long) -> int { return (mem.long_to_ptr(b) as *JSFunctionBytecode).arg_count }
-fb_byte_code(b: long) -> long { return mem.get_long(mem.long_to_ptr(b), 16) }
-fb_cpool(b: long) -> long { return mem.get_long(mem.long_to_ptr(b), 24) }
-fb_vars(b: long) -> long { return mem.get_long(mem.long_to_ptr(b), 32) }
-fb_ext_vars(b: long) -> long { return mem.get_long(mem.long_to_ptr(b), 40) }
-fb_stack_size(b: long) -> int { return mem.get_uint16(mem.long_to_ptr(b), 48) }
+fb_byte_code(b: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(b), 16) }
+fb_cpool(b: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(b), 24) }
+fb_vars(b: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(b), 32) }
+fb_ext_vars(b: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(b), 40) }
+fb_stack_size(b: long) -> int { return mem.get_uint16_unchecked(mem.long_to_ptr(b), 48) }
 
-prop_value(pr: ptr) -> long { return mem.get_long(pr, 8) }
-prop_set_value(pr: ptr, v: long) { mem.set_long(pr, 8, v) }
+prop_value(pr: ptr) -> long { return mem.get_long_unchecked(pr, 8) }
+prop_set_value(pr: ptr, v: long) { mem.set_long_unchecked(pr, 8, v) }
 prop_type(pr: ptr) -> int { return mqtypes.js_prop_type(pr) }
 
-vr_is_detached(pv: long) -> int { return (mem.get_byte(mem.long_to_ptr(pv), 0) >> 4) & 1 }
+vr_is_detached(pv: long) -> int { return (mem.get_byte_unchecked(mem.long_to_ptr(pv), 0) >> 4) & 1 }
 // JSVarRef.u union (offset 8): { value@8 } | { next@8, pvalue@16 }.
-vr_value(pv: long) -> long { return mem.get_long(mem.long_to_ptr(pv), 8) }     // u.value
-vr_set_value(pv: long, v: long) { mem.set_long(mem.long_to_ptr(pv), 8, v) }
-vr_next(pv: long) -> long { return mem.get_long(mem.long_to_ptr(pv), 8) }      // u.next
-vr_pvalue(pv: long) -> long { return mem.get_long(mem.long_to_ptr(pv), 16) }   // u.pvalue
+vr_value(pv: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(pv), 8) }     // u.value
+vr_set_value(pv: long, v: long) { mem.set_long_unchecked(mem.long_to_ptr(pv), 8, v) }
+vr_next(pv: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(pv), 8) }      // u.next
+vr_pvalue(pv: long) -> long { return mem.get_long_unchecked(mem.long_to_ptr(pv), 16) }   // u.pvalue
 vr_set_detached(pv: long) {
-    int h = mem.get_byte(mem.long_to_ptr(pv), 0)
-    mem.set_byte(mem.long_to_ptr(pv), 0, h | 0x10)
+    int h = mem.get_byte_unchecked(mem.long_to_ptr(pv), 0)
+    mem.set_byte_unchecked(mem.long_to_ptr(pv), 0, h | 0x10)
 }
 
 va_get_(arrval: long, i: int) -> long {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
-    return mem.get_long(mem.long_to_ptr(p + 8 + i * 8), 0)
+    return mem.get_long_unchecked(mem.long_to_ptr(p + 8 + i * 8), 0)
 }
 va_set_(arrval: long, i: int, v: long) {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
-    mem.set_long(mem.long_to_ptr(p + 8 + i * 8), 0, v)
+    mem.set_long_unchecked(mem.long_to_ptr(p + 8 + i * 8), 0, v)
 }
 // JS_IS_ROM_PTR(ctx, ptr): outside [ctx, ctx->stack_top), unsigned compare.
 vm_is_rom_(ctx: ptr, p: ptr) -> int {
     long bias = 0x8000000000000000
     long pb = mem.ptr_to_long(p) ^ bias
     if pb < (mem.ptr_to_long(ctx) ^ bias) { return 1 }
-    if pb >= (mem.ptr_to_long(mem.get_ptr(ctx, consts.JSCTX_STACK_TOP)) ^ bias) { return 1 }
+    if pb >= (mem.ptr_to_long(mem.get_ptr_unchecked(ctx, consts.JSCTX_STACK_TOP)) ^ bias) { return 1 }
     return 0
 }
 
 va_size_(arrval: long) -> int {
     long p = mem.ptr_to_long(jstag.value_to_ptr(arrval))
-    return mem.get_long(mem.long_to_ptr(p), 0) >> 4
+    return mem.get_long_unchecked(mem.long_to_ptr(p), 0) >> 4
 }
 
 // JSByteArray buf = JS_VALUE_TO_PTR(byte_code) + 8. JS_VALUE_TO_PTR
@@ -219,14 +219,14 @@ va_size_(arrval: long) -> int {
 // raw buffer address is simply (bcval - 1) + 8 = bcval + 7. Computed
 // directly to avoid an Aether ptr<->long round-trip that mis-lowered.
 bc_buf_(bcval: long) -> long { return bcval + 7 }
-bc_size(bcval: long) -> int { return mem.get_long(mem.long_to_ptr(bcval - 1), 0) >> 4 }
+bc_size(bcval: long) -> int { return mem.get_long_unchecked(mem.long_to_ptr(bcval - 1), 0) >> 4 }
 
-pc_u8(pc: long) -> int { return mem.get_byte(mem.long_to_ptr(pc), 0) }
-pc_i8(pc: long) -> int { return mem.get_int8(mem.long_to_ptr(pc), 0) }
-pc_u16(pc: long) -> int { return mem.get_uint16(mem.long_to_ptr(pc), 0) }
-pc_i16(pc: long) -> int { return mem.get_int16(mem.long_to_ptr(pc), 0) }
-pc_u32(pc: long) -> int { return mem.get_uint32(mem.long_to_ptr(pc), 0) }
-pc_i32(pc: long) -> int { return mem.get_int(mem.long_to_ptr(pc), 0) }
+pc_u8(pc: long) -> int { return mem.get_byte_unchecked(mem.long_to_ptr(pc), 0) }
+pc_i8(pc: long) -> int { return mem.get_int8_unchecked(mem.long_to_ptr(pc), 0) }
+pc_u16(pc: long) -> int { return mem.get_uint16_unchecked(mem.long_to_ptr(pc), 0) }
+pc_i16(pc: long) -> int { return mem.get_int16_unchecked(mem.long_to_ptr(pc), 0) }
+pc_u32(pc: long) -> int { return mem.get_uint32_unchecked(mem.long_to_ptr(pc), 0) }
+pc_i32(pc: long) -> int { return mem.get_int_unchecked(mem.long_to_ptr(pc), 0) }
 
 v_is_int(v: long) -> int { if (v & 1) == 0 { return 1 } return 0 }
 v_is_ptr(v: long) -> int { if (v & 7) == 1 { return 1 } return 0 }
@@ -400,7 +400,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                 if kind == 1 {
                     long cft = ctx_cft(ctx)
                     long fd = cft + short_func_idx * 24
-                    int def_type = mem.get_byte(mem.long_to_ptr(fd), 16)
+                    int def_type = mem.get_byte_unchecked(mem.long_to_ptr(fd), 16)
                     call_flags = v_get_int(slot(sp, FO_CALL_FLAGS))
                     if (call_flags & CF_CTOR) != 0 {
                         if def_type != consts.CFUNC_constructor { if def_type != consts.CFUNC_constructor_magic {
@@ -411,7 +411,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                         } }
                     }
                     int argc = call_flags & CF_ARGC_MASK
-                    int fd_argc = mem.get_byte(mem.long_to_ptr(fd), 17)
+                    int fd_argc = mem.get_byte_unchecked(mem.long_to_ptr(fd), 17)
                     ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                     int need = fd_argc - argc
                     if need < 0 { need = 0 }
@@ -432,20 +432,20 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     }
                     fp = sp
                     ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
-                    long fnptr = mem.get_long(mem.long_to_ptr(fd), 0)
+                    long fnptr = mem.get_long_unchecked(mem.long_to_ptr(fd), 0)
                     this_ptr = mem.long_to_ptr(fp + FO_THIS_OBJ * 8)
                     argv_ptr = mem.long_to_ptr(fp + FO_ARG0 * 8)
                     int cf_arg = call_flags & (CF_CTOR | CF_ARGC_MASK)
                     if def_type == consts.CFUNC_generic { val = vm_call_cfunc_generic(fnptr, ctx, this_ptr, cf_arg, argv_ptr) }
                     else if def_type == consts.CFUNC_constructor { val = vm_call_cfunc_generic(fnptr, ctx, this_ptr, cf_arg, argv_ptr) }
-                    else if def_type == consts.CFUNC_generic_magic { val = vm_call_cfunc_magic(fnptr, ctx, this_ptr, cf_arg, argv_ptr, mem.get_int16(mem.long_to_ptr(fd), 18)) }
-                    else if def_type == consts.CFUNC_constructor_magic { val = vm_call_cfunc_magic(fnptr, ctx, this_ptr, cf_arg, argv_ptr, mem.get_int16(mem.long_to_ptr(fd), 18)) }
+                    else if def_type == consts.CFUNC_generic_magic { val = vm_call_cfunc_magic(fnptr, ctx, this_ptr, cf_arg, argv_ptr, mem.get_int16_unchecked(mem.long_to_ptr(fd), 18)) }
+                    else if def_type == consts.CFUNC_constructor_magic { val = vm_call_cfunc_magic(fnptr, ctx, this_ptr, cf_arg, argv_ptr, mem.get_int16_unchecked(mem.long_to_ptr(fd), 18)) }
                     else if def_type == consts.CFUNC_generic_params { val = vm_call_cfunc_params(fnptr, ctx, this_ptr, cf_arg, argv_ptr, obj_cfunc_params(v_to_ptr(slot(fp, FO_FUNC_OBJ)))) }
                     else {
                         if scratch == null { scratch = malloc(8) }
                         if vm_to_number(ctx, scratch, slot(fp, FO_ARG0)) != 0 { val = jstag.JS_EXCEPTION }
                         else {
-                            float d2 = mem.get_float64(scratch, 0)
+                            float d2 = mem.get_float64_unchecked(scratch, 0)
                             d2 = vm_call_cfunc_f_f(fnptr, d2)
                             val = JS_NewFloat64(ctx, d2)
                         }
@@ -522,7 +522,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     long pv = v_to_ptr(vr)
                     long nextv = vr_next(pv)                  // u.next @8
                     // pv->u.value = *pv->u.pvalue ; pv->is_detached = TRUE; shrink
-                    long curval = mem.get_long(mem.long_to_ptr(vr_pvalue(pv)), 0)   // *u.pvalue (@16)
+                    long curval = mem.get_long_unchecked(mem.long_to_ptr(vr_pvalue(pv)), 0)   // *u.pvalue (@16)
                     vr_set_value(pv, curval)                  // store value @8
                     vr_set_detached(pv)
                     // shrink: free the trailing JSValue. sizeof(JSVarRef)=24,
@@ -924,7 +924,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     int idx = pc_u16(pc)
                     long p = v_to_ptr(slot(fp, FO_FUNC_OBJ))
                     long pv = v_to_ptr(obj_closure_varref(p, idx))
-                    if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long(mem.long_to_ptr(vr_pvalue(pv)), 0) }
+                    if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long_unchecked(mem.long_to_ptr(vr_pvalue(pv)), 0) }
                     if val == jstag.TAG_UNINITIALIZED {
                         long vname = va_get_(fb_ext_vars(b), 2 * idx)   // ext_vars->arr[2 * idx]
                         set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
@@ -939,7 +939,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     int idx = pc_u16(pc)
                     long p = v_to_ptr(slot(fp, FO_FUNC_OBJ))
                     long pv = v_to_ptr(obj_closure_varref(p, idx))
-                    if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long(mem.long_to_ptr(vr_pvalue(pv)), 0) }
+                    if vr_is_detached(pv) != 0 { val = vr_value(pv) } else { val = mem.get_long_unchecked(mem.long_to_ptr(vr_pvalue(pv)), 0) }
                     pc = pc + 2  sp = sp - 8  set_slot(sp, 0, val)  block = 0  continue
                 }
                 case opcodes.OP_put_var_ref: {
@@ -948,7 +948,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     long pv = v_to_ptr(obj_closure_varref(p, idx))
                     long pval = 0
                     if vr_is_detached(pv) != 0 { pval = pv + 8 } else { pval = vr_pvalue(pv) }
-                    if mem.get_long(mem.long_to_ptr(pval), 0) == jstag.TAG_UNINITIALIZED {
+                    if mem.get_long_unchecked(mem.long_to_ptr(pval), 0) == jstag.TAG_UNINITIALIZED {
                         long vname = va_get_(fb_ext_vars(b), 2 * idx)   // ext_vars->arr[2 * idx]
                         set_slot(fp, FO_CUR_PC, new_short_int_(pc - bc_buf_(fb_byte_code(b))))  ctx_set_sp_(ctx, sp)  ctx_set_fp(ctx, fp)
                         val = JS_ThrowError(ctx, consts.JS_CLASS_REFERENCE_ERROR, "variable '%lo' is not defined", vname)
@@ -956,7 +956,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                         b = obj_closure_fb(v_to_ptr(slot(fp, FO_FUNC_OBJ)))  pc = bc_buf_(fb_byte_code(b)) + v_get_int(slot(fp, FO_CUR_PC))
                         block = consts.BLK_EXCEPTION  break
                     }
-                    mem.set_long(mem.long_to_ptr(pval), 0, slot(sp, 0))  sp = sp + 8  pc = pc + 2  block = 0  continue
+                    mem.set_long_unchecked(mem.long_to_ptr(pval), 0, slot(sp, 0))  sp = sp + 8  pc = pc + 2  block = 0  continue
                 }
                 case opcodes.OP_put_var_ref_nocheck: {
                     int idx = pc_u16(pc)
@@ -964,7 +964,7 @@ JS_Call(ctx: ptr, call_flags: int) -> long {
                     long pv = v_to_ptr(obj_closure_varref(p, idx))
                     long pval = 0
                     if vr_is_detached(pv) != 0 { pval = pv + 8 } else { pval = vr_pvalue(pv) }
-                    mem.set_long(mem.long_to_ptr(pval), 0, slot(sp, 0))  sp = sp + 8  pc = pc + 2  block = 0  continue
+                    mem.set_long_unchecked(mem.long_to_ptr(pval), 0, slot(sp, 0))  sp = sp + 8  pc = pc + 2  block = 0  continue
                 }
                 case opcodes.OP_goto: {
                     pc = pc + pc_i32(pc)

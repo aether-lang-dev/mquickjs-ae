@@ -194,8 +194,8 @@ alter them. That is how the N3 generator port was verified.
   `run-valgrind.sh` and `scripts/diff-upstream.sh` (23/23 identical to
   `7ea5399`) all pass. Octane runs with correct results throughout. The ASAN
   fuzzer has run 9,000 cases with no crashes.
-- **Performance (2026-10-03, macOS arm64, Aether 0.763, both engines `-Os`).**
-  Octane: the port scores 0.51 of upstream C (it was 0.15); microbench 2.1×
+- **Performance (2026-10-03, macOS arm64, Aether 0.766, both engines `-Os`).**
+  Octane: the port scores 0.59 of upstream C (it was 0.15); microbench 1.70×
   slower (was 7.25×). What got it here, biggest first:
   - Aether 0.763 (#2375): `mem.long_to_ptr` / `ptr_to_long` / `get_ptr` and
     friends are inlined, and `--emit=lib` loop heads skip the deadline call.
@@ -212,11 +212,18 @@ alter them. That is how the N3 generator port was verified.
     straight back to dispatch with the slow path ignored. Testing `block` on
     every iteration had cost ~19% (clang folds it into a compare tree that
     includes 0).
+  - `ae/vm.ae` reads and writes engine memory with `mem.*_unchecked`
+    (Aether 0.766, aether#2379): the VM's pointers are non-null by
+    construction, as the C assumes, and the checked accessors' null branch
+    in every stack and bytecode access cost a third of the integer loop
+    (6.9 s to 4.5 s; Octane 0.47 to 0.59). Use the unchecked forms in
+    `vm.ae`; a null pointer there now crashes, as it does in C, rather than
+    reading 0.
   - Opcode dispatch is a `switch` (~2%: clang had already made a jump table).
   - `-O2` instead of `-Os` changes nothing for the port (upstream gains 7–8%).
   What is left is mostly computed goto, which upstream uses and Aether cannot
-  express (aether#2378), and per-access null checks in the `mem` accessors
-  (aether#2379). Profile with `xctrace record --template 'Time Profiler'`
+  express (aether#2378), and the checked accessors still used outside
+  `vm.ae` (the tag, string and property modules the handlers call). Profile with `xctrace record --template 'Time Profiler'`
   (instruction PCs) or `sample <pid> 2` (functions).
 - **Bugs found by the new harnesses and fixed (October 2026):**
   - VM: missing b/pc reloads after GC-capable calls.
