@@ -29,7 +29,9 @@ aeb(cap) {
             aether_home(aether_root_())
             // The CLI host (ae/cli_host.ae) reads/writes files and uses the
             // clock via std.fs / std.os; this binary owns those capabilities.
-            aether_caps("fs,os")
+            // The engine declares C externs (memcpy, ...); --emit=lib refuses
+            // those without the extern grant (Aether 0.801+).
+            aether_caps("fs,os,extern")
 
             // Engine sources, shared with the embedding example.
             mqjssources.register_engine_c_sources(".")

@@ -15,7 +15,7 @@ exports (JS_SetLogFunc, JS_SetRandomSeed, JS_GetGlobalObject, JS_PushArg,
 
 
 // void JS_SetLogFunc(JSContext *ctx, JSWriteFunc *write_func)
-JS_SetLogFunc(ctx: ptr, write_func: ptr) {
+JS_SetLogFunc(ctx: ptr, write_func: @keep ptr) {
     (ctx as *JSContext).write_func = write_func
 }
 

@@ -18,7 +18,7 @@ extern JS_GetProperty(ctx: ptr, obj: long, prop: long) -> long
 exports (JS_GetPropertyStr, JS_SetPropertyStr)
 
 
-gc_push_(ctx: ptr, ref: ptr, v: long) {
+gc_push_(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, consts.GCREF_VAL, v)

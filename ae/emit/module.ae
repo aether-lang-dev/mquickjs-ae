@@ -284,7 +284,7 @@ emit_return(s: ptr, hasval: int, source_pos: int) {
     emit_op_pos(s, op, source_pos)
 }
 
-ec_gc_push(ctx: ptr, ref: ptr, v: long) {
+ec_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, 8, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, 0, v)

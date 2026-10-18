@@ -183,8 +183,8 @@ js_typed_array_subarray(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 }
 
 ta_ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ta_ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-ta_gc_push(ctx: ptr, ref: ptr, v: long) {
+ta_ctx_set_top(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).top_gc_ref = v }
+ta_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, ta_ctx_top(ctx))
     ta_ctx_set_top(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)

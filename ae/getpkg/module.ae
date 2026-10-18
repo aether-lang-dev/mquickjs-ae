@@ -440,7 +440,7 @@ invoke_getter(ctx: ptr, getter: long, obj: long, allow_tail_call: int) -> long {
 
 
 // JSString *get_string_ptr(JSContext *ctx, JSStringCharBuf *buf, JSValue val)
-get_string_ptr(ctx: ptr, buf: ptr, val: long) -> ptr {
+get_string_ptr(ctx: ptr, buf: @keep ptr, val: long) -> ptr {
     if jstag.get_special_tag(val) == jstag.TAG_STRING_CHAR {
         // Materialise into the scratch JSString: header @0, bytes @8.
         int is_ascii = 0

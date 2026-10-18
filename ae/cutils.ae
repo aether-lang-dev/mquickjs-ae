@@ -36,7 +36,7 @@ pstrcpy(buf: ptr, buf_size: int, str: ptr) {
 }
 
 // char *pstrcat(char *buf, int buf_size, const char *s)
-pstrcat(buf: ptr, buf_size: int, s: ptr) -> ptr {
+pstrcat(buf: @keep ptr, buf_size: int, s: ptr) -> ptr {
     int len = strlen(buf)
     if len < buf_size {
         pstrcpy(mem.long_to_ptr(mem.ptr_to_long(buf) + len), buf_size - len, s)

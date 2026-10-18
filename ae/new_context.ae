@@ -25,7 +25,7 @@ exports (JS_NewContext2, JS_NewContext, dummy_write_func)
 dummy_write_func(opaque: ptr, buf: ptr, buf_len: long) -> int { return 0 }
 
 // JSContext *JS_NewContext(void *mem_start, size_t mem_size, const JSSTDLibraryDef *stdlib_def)
-JS_NewContext(mem_start: ptr, mem_size: long, stdlib_def: ptr) -> ptr {
+JS_NewContext(mem_start: @keep ptr, mem_size: long, stdlib_def: ptr) -> ptr {
     return JS_NewContext2(mem_start, mem_size, stdlib_def, 0)
 }
 
@@ -42,7 +42,7 @@ nc_va_size(arr: ptr) -> int { long h = mem.get_long(arr, 0)  long s = h >> 4  re
 cproto_set(ctx: ptr, id: int, v: long) { mem.set_long(ctx, consts.JSCTX_CLASS_PROTO + id * 8, v) }
 
 // JSContext *JS_NewContext2(void *mem_start, size_t mem_size, const JSSTDLibraryDef *stdlib_def, BOOL prepare_compilation)
-JS_NewContext2(mem_start: ptr, mem_size: long, stdlib_def: ptr, prepare_compilation: int) -> ptr {
+JS_NewContext2(mem_start: @keep ptr, mem_size: long, stdlib_def: ptr, prepare_compilation: int) -> ptr {
     long mem_align = 8
     mem_size = mem_size & (0 - mem_align)
 

@@ -55,7 +55,7 @@ c_str_len(p: ptr) -> int { return mem.get_long(p, 0) >> 7 }
 // coerce to string and expose its UTF-8 bytes. STRING_CHAR special renders
 // into the caller's 5-byte scratch; a heap string returns a pointer into its
 // own bytes. No allocation when the value already is a string.
-to_cstring_len(ctx: ptr, plen: ptr, val: long, buf: ptr) -> ptr {
+to_cstring_len(ctx: ptr, plen: ptr, val: long, buf: @keep ptr) -> ptr {
     val = to_string(ctx, val)
     if jstag.is_exception(val) != 0 { return null }
     p = mem.long_to_ptr(0)
@@ -75,7 +75,7 @@ to_cstring_len(ctx: ptr, plen: ptr, val: long, buf: ptr) -> ptr {
     return p
 }
 
-to_cstring(ctx: ptr, val: long, buf: ptr) -> ptr {
+to_cstring(ctx: ptr, val: long, buf: @keep ptr) -> ptr {
     return to_cstring_len(ctx, null, val, buf)
 }
 

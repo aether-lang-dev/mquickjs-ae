@@ -7,7 +7,7 @@
 
 import bldr
 import c
-import c (sources, include, cflag, emit, aether_source)
+import c (sources, include, cflag, emit, aether_source, aether_caps)
 
 aeb(cap) {
     bldr.build() {
@@ -19,6 +19,9 @@ aeb(cap) {
             sources("stdlib_main.c")
             sources("../mquickjs_build.c")
             // host build-tool helpers ported to Aether (bare C symbols)
+            // The build tools declare C externs (strcmp, ...); --emit=lib
+            // refuses those without the extern grant (Aether 0.801+).
+            aether_caps("extern")
             aether_source("buildtool/bt_predicates.ae")
             aether_source("buildtool/bt_atomlist.ae")
             aether_source("genengine/module.ae")

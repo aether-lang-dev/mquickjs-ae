@@ -93,8 +93,8 @@ js_regexp_get_flags(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 }
 
 re_ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-re_ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-re_gc_push(ctx: ptr, ref: ptr, v: long) {
+re_ctx_set_top(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).top_gc_ref = v }
+re_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, re_ctx_top(ctx))
     re_ctx_set_top(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)

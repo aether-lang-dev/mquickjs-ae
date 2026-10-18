@@ -18,8 +18,8 @@ exports (cpool_add)
 
 
 cp_ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-cp_ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-cp_gc_push(ctx: ptr, ref: ptr, v: long) {
+cp_ctx_set_top(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).top_gc_ref = v }
+cp_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, cp_ctx_top(ctx))
     cp_ctx_set_top(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)

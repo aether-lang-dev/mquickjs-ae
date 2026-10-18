@@ -6,7 +6,7 @@
 import bldr
 import bldr (dep)
 import c
-import c (sources, aether_source, cflag, link_flag, output_file, aether_home)
+import c (sources, aether_source, cflag, link_flag, output_file, aether_home, aether_caps)
 import gen.mqjssources
 import std.os
 import std.string
@@ -30,6 +30,9 @@ aeb(cap) {
             cflag("-fno-trapping-math")
             cflag("-I..")
             aether_home(aether_root_())
+            // The engine declares C externs (memcpy, ...); --emit=lib refuses
+            // those without the extern grant (Aether 0.801+).
+            aether_caps("extern")
 
             // Engine (shared with mqjs, single source of truth).
             mqjssources.register_engine_c_sources("..")

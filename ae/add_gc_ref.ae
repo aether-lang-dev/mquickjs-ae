@@ -13,7 +13,7 @@ exports (JS_AddGCRef)
 
 
 // JSValue *JS_AddGCRef(JSContext *ctx, JSGCRef *ref)
-JS_AddGCRef(ctx: ptr, ref: ptr) -> ptr {
+JS_AddGCRef(ctx: ptr, ref: @keep ptr) -> ptr {
     mem.set_ptr(ref, consts.GCREF_PREV, (ctx as *JSContext).last_gc_ref)
     (ctx as *JSContext).last_gc_ref = ref
     mem.set_long(ref, consts.GCREF_VAL, jstag.JS_UNDEFINED)

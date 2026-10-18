@@ -13,7 +13,7 @@ exports (JS_SetOpaque, JS_GetOpaque, JS_SetInterruptHandler)
 // JSObject u union @24; JSObjectUserData.opaque is the first field.
 
 // void JS_SetOpaque(JSContext *ctx, JSValue val, void *opaque)
-JS_SetOpaque(ctx: ptr, val: long, opaque: ptr) {
+JS_SetOpaque(ctx: ptr, val: long, opaque: @keep ptr) {
     p = jstag.value_to_ptr(val)
     (p as *JSObject).u.opaque = opaque
 }
@@ -25,6 +25,6 @@ JS_GetOpaque(ctx: ptr, val: long) -> ptr {
 }
 
 // void JS_SetInterruptHandler(JSContext *ctx, JSInterruptHandler *h)
-JS_SetInterruptHandler(ctx: ptr, h: ptr) {
+JS_SetInterruptHandler(ctx: ptr, h: @keep ptr) {
     (ctx as *JSContext).interrupt_handler = h
 }

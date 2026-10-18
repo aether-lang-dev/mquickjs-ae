@@ -110,7 +110,7 @@ ge_atoms_blob() -> ptr {
 
 // cvt_name: sanitize an atom string for the C #define. Empty -> "empty";
 // '<' '>' '-' -> '_'. Writes into buf (caller-owned, >=256 bytes).
-ge_cvt_name(buf: ptr, str: ptr) -> ptr {
+ge_cvt_name(buf: @keep ptr, str: ptr) -> ptr {
     long len = strlen(str)
     if len == 0 {
         strcpy(buf, "empty")
@@ -1198,11 +1198,18 @@ method_magic(_ctx: ptr, name: ptr, length: int, fn: ptr, magic: ptr) { cfunc_mag
 // --- class / object builders ---
 // class spec: [0]=DSL_CLASSREC [1]=name [2]=len [3]=ctor [4]=class_id
 //   [5]=parent_spec [6]=finalizer [7]=magic [8]=statics [9]=proto [10]=memo
+// A literal as a `ptr` to its C characters. Since Aether 0.818 a literal is
+// a pinned counted string: `list.add(r, "NULL")` stores that string itself
+// (a list's slot takes a string as Aether holds it), so the slot read back as
+// a `ptr` is its header. A literal written straight into a `ptr` argument is
+// its characters.
+cstr_(s: @keep ptr) -> ptr { return s }
+
 class_rec(name: ptr, length: int, ctor: ptr, class_id: ptr, magic: int) -> ptr {
     r = dsl_r(DSL_CLASSREC)
     list.add(r, name)  dsl_addi(r, length)  list.add(r, ctor)  list.add(r, class_id)
     list.add(r, mem.long_to_ptr(0))     // [5] parent
-    list.add(r, "NULL")                 // [6] finalizer
+    list.add(r, cstr_("NULL"))          // [6] finalizer
     dsl_addi(r, magic)                   // [7] magic
     list.add(r, list.new())            // [8] statics
     list.add(r, list.new())            // [9] proto

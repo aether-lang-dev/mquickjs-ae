@@ -17,7 +17,7 @@ exports (js_free, js_shrink, js_malloc, js_mallocz)
 
 
 // void js_free(JSContext *ctx, void *ptr)
-js_free(ctx: ptr, ptr_: ptr) {
+js_free(ctx: ptr, ptr_: @keep ptr) {
     if ptr_ == null { return }
     long end = mem.ptr_to_long(ptr_) + gc.get_mblock_size(ptr_)
     long heap_free = mem.ptr_to_long((ctx as *JSContext).heap_free)
@@ -28,7 +28,7 @@ js_free(ctx: ptr, ptr_: ptr) {
 
 // void *js_shrink(JSContext *ctx, void *ptr, uint32_t new_size)
 // ptr != NULL; new_size <= current block size.
-js_shrink(ctx: ptr, ptr_: ptr, new_size: int) -> ptr {
+js_shrink(ctx: ptr, ptr_: @keep ptr, new_size: int) -> ptr {
     int ns = (new_size + (jstag.JSW - 1)) & (0 - jstag.JSW)   // round up to jstag.JSW
     if ns == 0 {
         js_free(ctx, ptr_)

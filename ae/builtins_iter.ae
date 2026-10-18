@@ -43,12 +43,12 @@ const SPECIAL_REDUCERIGHT = 1
 ctx_top_gc_ref(ctx: ptr) -> ptr {
     return (ctx as *JSContext).top_gc_ref
 }
-ctx_set_top_gc_ref(ctx: ptr, v: ptr) {
+ctx_set_top_gc_ref(ctx: ptr, v: @keep ptr) {
     (ctx as *JSContext).top_gc_ref = v
 }
 
 // JS_PUSH_VALUE(ctx, ref, v): ref.prev = top; top = ref; ref.val = v
-gc_push_(ctx: ptr, ref: ptr, v: long) {
+gc_push_(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_gc_ref(ctx))
     ctx_set_top_gc_ref(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)

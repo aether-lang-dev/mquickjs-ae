@@ -35,7 +35,7 @@ f_isfinite_(d: float) -> int {
 }
 
 ctx_sp_(ctx: ptr) -> ptr { return (ctx as *JSContext).sp }
-ctx_set_sp_(ctx: ptr, v: ptr) { (ctx as *JSContext).sp = v }
+ctx_set_sp_(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).sp = v }
 
 // *--ctx->sp = v
 sp_push(ctx: ptr, v: long) {

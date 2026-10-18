@@ -353,8 +353,8 @@ js_array_concat(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long {
 
 // GC-root helpers (see builtins_iter)
 spl_ctx_top(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-spl_ctx_set_top(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-spl_gc_push(ctx: ptr, ref: ptr, v: long) {
+spl_ctx_set_top(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).top_gc_ref = v }
+spl_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, spl_ctx_top(ctx))
     spl_ctx_set_top(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)

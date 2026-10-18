@@ -31,7 +31,7 @@ js_get_atom(ctx: ptr, a: int) -> long {
 }
 
 // JSValue *JS_PushGCRef(JSContext *ctx, JSGCRef *ref)
-JS_PushGCRef(ctx: ptr, ref: ptr) -> ptr {
+JS_PushGCRef(ctx: ptr, ref: @keep ptr) -> ptr {
     top = (ctx as *JSContext).top_gc_ref
     mem.set_ptr(ref, consts.GCREF_PREV, top)
     (ctx as *JSContext).top_gc_ref = ref
@@ -52,6 +52,6 @@ JS_GetContextOpaque(ctx: ptr) -> ptr {
 }
 
 // void JS_SetContextOpaque(JSContext *ctx, void *opaque)
-JS_SetContextOpaque(ctx: ptr, opaque: ptr) {
+JS_SetContextOpaque(ctx: ptr, opaque: @keep ptr) {
     (ctx as *JSContext).opaque = opaque
 }

@@ -262,8 +262,19 @@ alter them. That is how the N3 generator port was verified.
 - **CLI host OS glue is on Aether std.** `Date.now` and `performance.now` use
   `std.os` clocks. `load_file` and the bytecode write use `std.fs`.
   `run_timers` is Aether: `std.os` clock plus the built-in `sleep`. The mqjs
-  node therefore declares `aether_caps("fs,os")`, because `--emit=lib`
-  refuses gated std modules without it.
+  node therefore declares `aether_caps("fs,os,extern")`, because `--emit=lib`
+  refuses gated std modules without it. `extern` is there because the
+  engine declares C externs (`memcpy`, ...), which `--emit=lib` refuses
+  without that grant since Aether 0.801; the example and both generator
+  nodes declare it too.
+- **Ownership annotations (Aether 0.818).** A function that keeps a `ptr`
+  parameter (stores it in a struct field, returns it, or passes it to
+  another keeping parameter) declares it `p: @keep ptr`, or the compiler
+  refuses it (E0902). The engine's GC-root pushes, opaque setters and
+  buffer-returning helpers carry it. A string literal is a pinned counted
+  string: written straight into a `ptr` argument it is its C characters,
+  but `list.add(l, "lit")` stores the string itself, so the generator
+  passes such literals through `cstr_` (`gen/genengine`).
 - **The VM brackets GC-capable calls the way upstream does.** Each slow-path
   call stores `cur_pc` before it and reloads `b`/`pc` after it, because the
   compacting GC can move bytecode. `tests/test_gc_relocation.js` guards this.

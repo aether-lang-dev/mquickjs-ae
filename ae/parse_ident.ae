@@ -32,7 +32,7 @@ is_ident_next_(c: int) -> int {
     return 0
 }
 
-pi_gc_push(ctx: ptr, ref: ptr, v: long) {
+pi_gc_push(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, (ctx as *JSContext).top_gc_ref)
     (ctx as *JSContext).top_gc_ref = ref
     mem.set_long(ref, consts.GCREF_VAL, v)

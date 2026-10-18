@@ -107,8 +107,8 @@ js_object_setPrototypeOf(ctx: ptr, this_val: ptr, argc: int, argv: ptr) -> long 
 
 // --- js_object_keys ------------------------------------------------
 ctx_top_(ctx: ptr) -> ptr { return (ctx as *JSContext).top_gc_ref }
-ctx_set_top_(ctx: ptr, v: ptr) { (ctx as *JSContext).top_gc_ref = v }
-gc_push_(ctx: ptr, ref: ptr, v: long) {
+ctx_set_top_(ctx: ptr, v: @keep ptr) { (ctx as *JSContext).top_gc_ref = v }
+gc_push_(ctx: ptr, ref: @keep ptr, v: long) {
     mem.set_ptr(ref, consts.GCREF_PREV, ctx_top_(ctx))
     ctx_set_top_(ctx, ref)
     mem.set_long(ref, consts.GCREF_VAL, v)
