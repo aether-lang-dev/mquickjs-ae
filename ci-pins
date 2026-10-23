@@ -1,4 +1,14 @@
 # Toolchain the port is validated against. CI builds exactly these; bump them
 # deliberately (after running the gate locally against the new versions).
-AETHER_REF=v0.829.0
-AEB_REF=v0.327
+#
+# 2026-10-23: v0.829.0 -> v0.841.0 and v0.327 -> v0.333, an evidence-based
+# move, not a tracking one. aeb v0.333 (aeb 790e7d2, its own floor 0.840.0)
+# carries the @keep declarations the 0.836-0.840 ownership rules require, and
+# 0.841.0 rejects the port as it stood: E0902 on borrowed ptr parameters that
+# gen/genengine's builders store in lists (now @keep), E0100 on the zero-length
+# `long[0]` tail of JSValueArray (now the flexible `long[]`, like the other
+# tails), and E0200 on locals bound at two types in one function
+# (lre_exec.ae's ret/lo/hi). Verified: the .tests.ae gate, run-ae-tests.sh
+# (16 suites) and scripts/diff-upstream.sh (24/24 identical to 7ea5399).
+AETHER_REF=v0.841.0
+AEB_REF=v0.333

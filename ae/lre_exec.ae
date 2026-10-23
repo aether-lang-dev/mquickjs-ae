@@ -106,8 +106,8 @@ lx_gc_call(ctx: ptr, r: ptr, kind: int, n: int) -> int {
         long ret = js_poll_interrupt(ctx)
         if jstag.is_exception(ret) != 0 { failed = 1 }
     } else {
-        int ret = JS_StackCheck(ctx, n)
-        if ret < 0 { failed = 1 }
+        int sret = JS_StackCheck(ctx, n)
+        if sret < 0 { failed = 1 }
     }
 
     mem.set_long(r, R_CAPTURE_BUF, mem.get_long(refs, 0))
@@ -539,10 +539,10 @@ lx_dispatch(ctx: ptr, r: ptr, opcode: int, capture_count: int, plen: ptr) -> int
         int matched = 0
         while idx_min <= idx_max && matched == 0 {
             int idx = (idx_min + idx_max) / 2
-            long lo = lx_u32(pc + idx * 8) & 0xffffffff
-            long hi = lx_u32(pc + idx * 8 + 4) & 0xffffffff
-            if uc < lo { idx_max = idx - 1 }
-            else { if uc >= hi { idx_min = idx + 1 } else { matched = 1 } }
+            long ulo = lx_u32(pc + idx * 8) & 0xffffffff
+            long uhi = lx_u32(pc + idx * 8 + 4) & 0xffffffff
+            if uc < ulo { idx_max = idx - 1 }
+            else { if uc >= uhi { idx_min = idx + 1 } else { matched = 1 } }
         }
         if matched == 0 { return 2 }
         mem.set_long(r, R_PC, pc + 8 * n)

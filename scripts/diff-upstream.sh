@@ -86,14 +86,16 @@ git -C "$ROOT" show "$UPSTREAM_REF:libm.c" > "$C/libm_upstream.c"
 aeb_env
 # (--with=extern: dtoa.ae declares C externs, which --emit=lib refuses
 # without the grant since Aether 0.801)
-"$AETHER_TREE/build/aetherc" --emit=lib --with=extern --lib "$ROOT" "$ROOT/ae/dtoa.ae" "$C/dtoa_ae.c" >/dev/null 2>&1 \
+AETHERC="$AETHER_TREE/build/aetherc"; [ -x "$AETHERC" ] || AETHERC="$AETHER_TREE/bin/aetherc"      # dev tree or release install
+LIBAETHER="$AETHER_TREE/build/libaether.a"; [ -f "$LIBAETHER" ] || LIBAETHER="$AETHER_TREE/lib/libaether.a"; [ -f "$LIBAETHER" ] || LIBAETHER="$AETHER_TREE/lib/aether/libaether.a"
+"$AETHERC" --emit=lib --with=extern --lib "$ROOT" "$ROOT/ae/dtoa.ae" "$C/dtoa_ae.c" >/dev/null 2>&1 \
     || die "aetherc failed on ae/dtoa.ae"
 # (not `find -printf`: GNU-only, and macOS's find rejects it)
-INC=$(find "$AETHER_TREE/runtime" "$AETHER_TREE/std" -name '*.h' -exec dirname {} \; | sort -u | sed 's/^/-I/' | tr '\n' ' ')
+INC=$(find "$AETHER_TREE/runtime" "$AETHER_TREE/std" "$AETHER_TREE/share/aether/runtime" "$AETHER_TREE/share/aether/std" -name '*.h' -exec dirname {} \; 2>/dev/null | sort -u | sed 's/^/-I/' | tr '\n' ' ')
 CF="-O2 -D_GNU_SOURCE -fno-math-errno -fno-trapping-math -I$C -w"
 (cd "$C" &&
     gcc $CF $INC -o dtoa_test tests/dtoa_test.c tests/gay-fixed.c tests/gay-precision.c \
-        tests/gay-shortest.c "$ROOT/dtoa.c" cutils.c dtoa_ae.c "$AETHER_TREE/build/libaether.a" \
+        tests/gay-shortest.c "$ROOT/dtoa.c" cutils.c dtoa_ae.c "$LIBAETHER" \
         -lm -lpthread -ldl &&
     gcc $CF -o libm_test tests/libm_test.c "$ROOT/libm.c" -lm &&
     gcc $CF -o libm_test_ref tests/libm_test.c libm_upstream.c -lm &&

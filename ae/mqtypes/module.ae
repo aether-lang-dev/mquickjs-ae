@@ -52,7 +52,7 @@ extern struct JSValueArray {
     gc_mark: uint64_t : 1
     mtag:    uint64_t : 3
     size:    uint64_t : 60
-    arr:     long[0]
+    arr:     long[]
 }
 
 // JSObject: header(4) + class_id:8 + extra_size:52, then proto
