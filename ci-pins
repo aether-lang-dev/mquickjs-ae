@@ -10,5 +10,15 @@
 # tails), and E0200 on locals bound at two types in one function
 # (lre_exec.ae's ret/lo/hi). Verified: the .tests.ae gate, run-ae-tests.sh
 # (16 suites) and scripts/diff-upstream.sh (24/24 identical to 7ea5399).
-AETHER_REF=v0.841.0
-AEB_REF=v0.333
+#
+# 2026-11-20: v0.841.0 -> v0.931.0 (Aether) is a tracking-only bump, no new
+# primitive needed and no source change: the port builds and passes on 0.931.0
+# as it stood. v0.333 -> v0.347 (aeb) is not tracking: aeb v0.333's own sources
+# hand ptrs to string parameters, which Aether 0.914.0 and later refuse (E0202),
+# so `make install` of v0.333 fails on 0.931.0 (seen: _list_type, ae_path_join,
+# bldr's _is_abs_path). v0.347 is the aeb the family pins with 0.931.0.
+# Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.931.0 release install, aeb v0.347):
+# the .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and
+# scripts/diff-upstream.sh.
+AETHER_REF=v0.931.0
+AEB_REF=v0.347
