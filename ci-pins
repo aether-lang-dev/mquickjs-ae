@@ -20,5 +20,10 @@
 # Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.931.0 release install, aeb v0.347):
 # the .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and
 # scripts/diff-upstream.sh.
-AETHER_REF=v0.931.0
+# 2026-11-21: v0.931.0 -> v0.933.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no source change. aeb stays v0.347. Verified on ae-x64
+# (Ubuntu 22.04 x86_64, a 0.933.0 release install, aeb v0.349 as the runner): the
+# .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and scripts/diff-upstream.sh
+# (24/24 identical to upstream).
+AETHER_REF=v0.933.0
 AEB_REF=v0.347
