@@ -25,5 +25,13 @@
 # (Ubuntu 22.04 x86_64, a 0.933.0 release install, aeb v0.349 as the runner): the
 # .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and scripts/diff-upstream.sh
 # (24/24 identical to upstream).
-AETHER_REF=v0.933.0
+# 2026-11-22: v0.933.0 -> v0.935.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no source change. aeb stays v0.347 as the pin; the runner
+# was aeb v0.349, because v0.347 builds with its own private 0.898.0 toolchain
+# when AETHER_HOME names a newer release and fails to link (dir_list_error).
+# Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.935.0 release install): the
+# .tests.ae gate, run-ae-tests.sh (16 suites) and scripts/diff-upstream.sh
+# (24/24 identical to upstream). The receiver-rule change in 0.935.0 changes
+# nothing here: the generated C of every program is the same on 0.934.0 and 0.935.0.
+AETHER_REF=v0.935.0
 AEB_REF=v0.347
