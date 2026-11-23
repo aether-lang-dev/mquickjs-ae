@@ -38,5 +38,11 @@
 # was aeb main). Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.936.0 release
 # install): the .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and
 # scripts/diff-upstream.sh (24/24 identical to upstream).
-AETHER_REF=v0.936.0
+# 2026-11-23: v0.936.0 -> v0.939.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no source change (nothing here uses std.http.client, whose
+# process-wide pool 0.939.0 removed). aeb stays v0.347 as the pin (the runner was
+# aeb main). Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.939.0 release install):
+# the .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and
+# scripts/diff-upstream.sh (24/24 identical to upstream).
+AETHER_REF=v0.939.0
 AEB_REF=v0.347
