@@ -210,7 +210,7 @@ main() {
         spec.it("strstart sets *ptr past the prefix") callback {
             s = malloc(16)
             strcpy(s, "--verbose")
-            pre = malloc(8)
+            pre = malloc(16)
             strcpy(pre, "--")
             slot = malloc(8)
             mem.set_ptr(slot, 0, null)

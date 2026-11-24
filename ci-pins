@@ -44,5 +44,14 @@
 # aeb main). Verified on ae-x64 (Ubuntu 22.04 x86_64, a 0.939.0 release install):
 # the .tests.ae gate (17/17), run-ae-tests.sh (16 suites) and
 # scripts/diff-upstream.sh (24/24 identical to upstream).
-AETHER_REF=v0.939.0
+# 2026-11-24: v0.939.0 -> v0.941.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no Aether-side source change. aeb stays v0.347 as the pin
+# (the runner was aeb v0.349). Verified on cachyos (Linux x86_64, a 0.941.0
+# release install): the .tests.ae gate (17/17), run-ae-tests.sh (16 suites, all
+# passing) and scripts/diff-upstream.sh (24/24 identical to upstream); and on
+# ghostbsd (FreeBSD 15.1): the gate 17/17. The one change is a test fix found
+# there, not caused by 0.941.0 (red on 0.939.0 too): test_cutils_edge's strstart
+# case copied "--verbosely" into a malloc(8) buffer, a heap overflow that only
+# showed under FreeBSD's allocator; the buffer is now 16 bytes.
+AETHER_REF=v0.941.0
 AEB_REF=v0.347
