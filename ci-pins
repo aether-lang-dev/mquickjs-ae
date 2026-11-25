@@ -53,5 +53,12 @@
 # there, not caused by 0.941.0 (red on 0.939.0 too): test_cutils_edge's strstart
 # case copied "--verbosely" into a malloc(8) buffer, a heap overflow that only
 # showed under FreeBSD's allocator; the buffer is now 16 bytes.
-AETHER_REF=v0.941.0
+# 2026-11-25: v0.941.0 -> v0.944.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no source change. 0.942-0.944 are performance only (runtime
+# actor batching, inline std.math scalar functions, inline slice-view release); the
+# port is pure computation and sends no actor messages. aeb stays v0.347 as the pin
+# (the runner was aeb main). Verified on cachyos (Linux x86_64, a 0.944.0 release
+# install): the .tests.ae gate (17/17), run-ae-tests.sh (16 suites, all passing) and
+# scripts/diff-upstream.sh (24/24 identical to upstream).
+AETHER_REF=v0.944.0
 AEB_REF=v0.347
