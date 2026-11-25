@@ -67,5 +67,6 @@
 # fires here. Verified on cachyos (a 0.945.0 release install): the .tests.ae gate
 # (17/17), run-ae-tests.sh (16 suites, all passing) and scripts/diff-upstream.sh
 # (24/24 identical to upstream).
-AETHER_REF=v0.945.0
+# 2026-11-25: v0.945.0 -> v0.946.0 (Aether) is a tracking-only bump again, no new primitive needed, no source change. 0.946.0 fixes a selective `import std.math (...)` in one module breaking `math.sqrt` in another (E0301, aether#3877); none fires here. Verified: see the commit.
+AETHER_REF=v0.946.0
 AEB_REF=v0.347
