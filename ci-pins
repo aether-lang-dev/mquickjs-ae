@@ -60,5 +60,12 @@
 # (the runner was aeb main). Verified on cachyos (Linux x86_64, a 0.944.0 release
 # install): the .tests.ae gate (17/17), run-ae-tests.sh (16 suites, all passing) and
 # scripts/diff-upstream.sh (24/24 identical to upstream).
-AETHER_REF=v0.944.0
+# 2026-11-25: v0.944.0 -> v0.945.0 (Aether) is a tracking-only bump again, no new
+# primitive needed and no source change. 0.945.0 is a macOS cross-build fix and
+# three merge/typechecker fixes (struct literal fields vs module vars, glob import
+# binds only exports, a local named like an imported function is E0301); none
+# fires here. Verified on cachyos (a 0.945.0 release install): the .tests.ae gate
+# (17/17), run-ae-tests.sh (16 suites, all passing) and scripts/diff-upstream.sh
+# (24/24 identical to upstream).
+AETHER_REF=v0.945.0
 AEB_REF=v0.347
