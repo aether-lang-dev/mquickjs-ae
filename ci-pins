@@ -68,5 +68,6 @@
 # (17/17), run-ae-tests.sh (16 suites, all passing) and scripts/diff-upstream.sh
 # (24/24 identical to upstream).
 # 2026-11-25: v0.945.0 -> v0.946.0 (Aether) is a tracking-only bump again, no new primitive needed, no source change. 0.946.0 fixes a selective `import std.math (...)` in one module breaking `math.sqrt` in another (E0301, aether#3877); none fires here. Verified: see the commit.
-AETHER_REF=v0.946.0
+# 2026-11-28: v0.946.0 -> v0.949.0 (Aether) is a tracking-only bump again, no new primitive needed, no source change. 0.947.0 to 0.949.0 rename string.to_double to string.to_float (not used here), make it a 64-bit strtod, check os.which/os.getcwd against the sandbox and make a wrong-count multi-value return E0200; none fires here. Verified: on ae-x64 (Linux x86_64, a 0.949.0 release install) the .tests.ae gate 17/17 PASS and run-ae-tests.sh all suites pass; on macOS arm64 (release install, AETHER_TREE=~/.aether/current) scripts/diff-upstream.sh 24/24 identical to upstream.
+AETHER_REF=v0.949.0
 AEB_REF=v0.347
